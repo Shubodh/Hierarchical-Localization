@@ -1,4 +1,9 @@
 # hloc - the hierarchical localization toolbox
+----
+### graphVPR documentation
+The scripts in the folder `graphVPR/` extract the necessary information for our graphVPR related tasks. Find more information in the README file in that folder itself.
+
+-----
 
 This is `hloc`, a modular toolbox for state-of-the-art 6-DoF visual localization. It implements [Hierarchical Localization](https://arxiv.org/abs/1812.03506), leveraging image retrieval and feature matching, and is fast, accurate, and scalable. This codebase won the indoor/outdoor localization challenges at [CVPR 2020](https://sites.google.com/view/vislocslamcvpr2020/home) and [ECCV 2020](https://sites.google.com/view/ltvl2020/), in combination with [SuperGlue](https://psarlin.com/superglue/), our graph neural network for feature matching.
 

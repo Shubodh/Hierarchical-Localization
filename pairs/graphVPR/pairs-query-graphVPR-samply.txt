@@ -1,0 +1,16 @@
+query/10_rgb.png cutouts_imageonly/8_rgb.png
+query/10_rgb.png cutouts_imageonly/8_rgb_a.png
+query/10_rgb.png cutouts_imageonly/9_rgb.png
+query/10_rgb.png cutouts_imageonly/9_rgb_a.png
+query/10_rgb.png cutouts_imageonly/10_rgb.png
+query/10_rgb.png cutouts_imageonly/11_rgb.png
+query/10_rgb.png cutouts_imageonly/11_rgb_a.png
+query/10_rgb.png cutouts_imageonly/12_rgb.png
+query/10_rgb.png cutouts_imageonly/13_rgb.png
+query/10_rgb.png cutouts_imageonly/14_rgb.png
+query/10_rgb.png cutouts_imageonly/15_rgb.png
+query/10_rgb.png cutouts_imageonly/16_rgb.png
+query/10_rgb.png cutouts_imageonly/17_rgb.png
+query/10_rgb.png cutouts_imageonly/18_rgb.png
+query/10_rgb.png cutouts_imageonly/19_rgb.png
+query/10_rgb.png cutouts_imageonly/20_rgb.png
