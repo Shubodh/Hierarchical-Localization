@@ -8,6 +8,16 @@ import sys
 sys.path.append(str(Path(__file__).parent / '..')) #to import hloc
 from hloc import extract_features, match_features, localize_inloc, visualization
 
+from matplotlib import cm
+import random
+import numpy as np
+import pickle
+
+from hloc.utils.read_write_model import read_images_binary, read_points3D_binary
+from hloc.utils.viz import (
+        plot_images, plot_keypoints, plot_matches, cm_RdGn, add_text)
+from hloc.utils.io import read_image
+
 def main(dataset, pairs, outputs, loc_pairs, results):
 
     ## list the standard configurations available
@@ -28,16 +38,17 @@ def main(dataset, pairs, outputs, loc_pairs, results):
     # Here we assume that the localization pairs are already computed using image retrieval (NetVLAD). To generate new pairs from your own global descriptors, have a look at `hloc/pairs_from_retrieval.py`. These pairs are also used for the localization - see below.
     match_path = match_features.main(matcher_conf, loc_pairs, feature_conf['output'], outputs)
     print(match_path)
+            
 
     # ## Localize!
     # Perform hierarchical localization using the precomputed retrieval and matches. Different from when localizing with Aachen, here we do not need a 3D SfM model here: the dataset already has 3D lidar scans. The file `InLoc_hloc_superpoint+superglue_netvlad40.txt` will contain the estimated query poses.
-    #localize_inloc.main(
-    #    dataset, loc_pairs, feature_path, match_path, results,
-    #    skip_matches=20)#20  # skip database images with too few matches
+    localize_inloc.main_only_kp(
+        dataset, loc_pairs, feature_path, match_path, results,
+        skip_matches=20)#20  # skip database images with too few matches
 
-    # ## Visualization
-    # We parse the localization logs and for each query image plot matches and inliers with a few database images.
-    visualization.visualize_loc(results, dataset, n=1, top_k_db=1, seed=2)
+    ## ## Visualization
+    ## We parse the localization logs and for each query image plot matches and inliers with a few database images.
+    #visualization.visualize_loc_kp(results, dataset, n=1, top_k_db=1, seed=2)
 
 
 # Experimentation
