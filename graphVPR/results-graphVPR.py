@@ -136,7 +136,7 @@ def main_viz(scene_name, folder_name, num_lines_dict, num_rooms_dict, matches, f
         #easy_list = int_list[:int(len_total/2)]; diff_list = int_list[int(len_total/2):]
         #easy_score, diff_score =  (sum(easy_list)/len(easy_list) * 100), (sum(diff_list)/len(diff_list) * 100)
 
-def print_results(scene_names, folder_names, num_lines_dict, num_rooms_dict):
+def print_results(retrieval_name, scene_names, folder_names, num_lines_dict, num_rooms_dict):
     feat_method = 'superpoint-n4096-r1600' #sift,  superpoint-n4096-r1600, d2net-ss
     match_method = 'superglue' #superglue, NN-mutual
     h5_suffix = '.h5'
@@ -146,8 +146,10 @@ def print_results(scene_names, folder_names, num_lines_dict, num_rooms_dict):
     scores_easy = []
     scores_diff = []
     for folder_name, scene_name in zip(folder_names, scene_names):
-        matches = str(Path('../outputs/graphVPR/room_level_localization_small/' + folder_name+ '/\
-feats-'+feat_method+ '_matches-' +match_method+ '_pairs-' +folder_name+h5_suffix))
+#        matches = str(Path('../outputs/graphVPR/room_level_localization_small/' +retrieval_name[0]+ '/' + folder_name+ '/\
+#feats-'+feat_method+ '_matches-' +match_method+ '_pairs-' +folder_name+h5_suffix))
+        matches = str(Path('../outputs/graphVPR/room_level_localization_small/' +retrieval_name[1]+ '/' + scene_name+ '/\
+feats-'+feat_method+ '_matches-' +match_method+ '_' +scene_name+h5_suffix))
         score_easy, score_diff = main(scene_name, folder_name, num_lines_dict, num_rooms_dict, matches)
         print(f"Score for {folder_name} is easy: {score_easy}; difficult {score_diff}")
         scores_easy.append(score_easy)
@@ -226,6 +228,24 @@ if __name__ == '__main__':
     '14_mp3d_yqstnuAEVhm': 1296 
     }
 
+    num_lines_dict_top3r = {
+    '0_mp3d_8WUmhLawc2A': 48,
+    '1_mp3d_EDJbREhghzL': 48,
+    '2_mp3d_i5noydFURQK': 42,                                      
+    '3_mp3d_jh4fc5c5qoQ': 30,              
+    '4_mp3d_mJXqzFtmKg4': 54,
+    '5_mp3d_qoiz87JEwZ2': 54,                                      
+    '6_mp3d_RPmz2sHmrrY': 36,            
+    '7_mp3d_S9hNv5qa7GM': 54,
+    '8_mp3d_ULsKaCPVFJR': 30,                                        
+    '9_mp3d_VzqfbhrpDEA': 54,                                       
+    '10_mp3d_wc2JMjhGNzB': 72,                                      
+    '11_mp3d_WYY7iVyf5p8': 30,            
+    '12_mp3d_X7HyMhZNoso': 42,                                      
+    '13_mp3d_YFuZgdQ5vWj': 48,                                     
+    '14_mp3d_yqstnuAEVhm': 36 
+    }
+
     num_rooms_dict = {
     '0_mp3d_8WUmhLawc2A': 8,
     '1_mp3d_EDJbREhghzL': 8,
@@ -255,5 +275,6 @@ if __name__ == '__main__':
         ]
 
 
-    #print_results(scene_names, folder_names, num_lines_dict, num_rooms_dict)
-    viz_results(scene_names, folder_names, num_lines_dict, num_rooms_dict)
+    retrieval_name = ["SP_SG_bruteforce", "hist-top3r-1i"]
+    print_results(retrieval_name,scene_names, folder_names, num_lines_dict_top3r, num_rooms_dict)
+    #viz_results(scene_names, folder_names, num_lines_dict, num_rooms_dict)

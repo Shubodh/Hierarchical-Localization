@@ -40,13 +40,14 @@ def main(dataset, pairs, outputs, loc_pairs, results):
     # ## Extract local features for database and query images
     feature_path = extract_features.main(feature_conf, dataset, outputs)
     print(feature_path)
-    time.sleep(30)
+    #time.sleep(30)
 
     # ## Match the query images
     # Here we assume that the localization pairs are already computed using image retrieval (NetVLAD). To generate new pairs from your own global descriptors, have a look at `hloc/pairs_from_retrieval.py`. These pairs are also used for the localization - see below.
     match_path = match_features.main(matcher_conf, loc_pairs, feature_conf['output'], outputs)
     print(match_path)
-    time.sleep(45)
+    #time.sleep(45)
+    time.sleep(10)
             
 
     # ## Localize!
@@ -173,20 +174,24 @@ if __name__ == '__main__':
         '0_mp3d_8WUmhLawc2A'
         ]
 
+    retrieval_name = ["SP_SG_bruteforce", "hist-top3r-1i"]
     # change this if your dataset is somewhere else
-#    for folder_name in tqdm(folder_names):
-#        print(f"currently folder: {folder_name}")
-#        dataset = Path('../datasets/graphVPR/room_level_localization_small/' + folder_name + '/')
-#        pairs = Path('../pairs/graphVPR/room_level_localization_small/')
-#        loc_pairs = pairs / ('pairs-' + folder_name + txt_suffix)  #'pairs-query-netvlad40.txt'  # top 40 retrieved by NetVLAD
-#        outputs = Path('../outputs/graphVPR/room_level_localization_small/' + folder_name + '/')  # where everything will be saved
-#        results = outputs / folder_name / '_hloc_superpoint+superglue_NOTnetvlad40.txt'  # the result file
+    for scene_name, folder_name in tqdm(zip(scene_names, folder_names)):
+        print(f"currently folder: {folder_name}")
+        dataset = Path('../datasets/graphVPR/room_level_localization_small/' + folder_name + '/')
+        pairs = Path('../pairs/graphVPR/room_level_localization_small/')
+        #loc_pairs = pairs / (retrieval_name[0]+ '/'+'pairs-' + folder_name + txt_suffix)  #'pairs-query-netvlad40.txt'  # top 40 retrieved by NetVLAD
+        loc_pairs = pairs / (retrieval_name[1]+ '/'+ scene_name + txt_suffix)  
+        #outputs = Path('../outputs/graphVPR/room_level_localization_small/'+ retrieval_name[0]+ '/' + folder_name + '/')  # where everything will be saved
+        outputs = Path('../outputs/graphVPR/room_level_localization_small/' +retrieval_name[1]+ '/'+ scene_name + '/')  # where everything will be saved
+        #results = outputs /  '_hloc_superpoint+superglue_NOTnetvlad40.txt'  # the result file
+        results = outputs / '_hloc_superpoint+superglue_NOTnetvlad40.txt'  # the result file
+
+        main(dataset, pairs, outputs, loc_pairs, results)
 #
-#        main(dataset, pairs, outputs, loc_pairs, results)
-#
-    scene_name = '8WUmhLawc2A'
-    dataset = Path('../datasets/graphVPR/dummy-old/mp3d_'+scene_name+'_small/')
-    features = Path('../outputs/graphVPR/mp3d_'+scene_name+'_small/feats-superpoint-n4096-r1600.h5')
-    matches = Path('../outputs/graphVPR/mp3d_'+scene_name+'_small/feats-superpoint-n4096-r1600_matches-superglue_pairs-query-mp3d_'+scene_name+'_small.h5')
-    loc_pairs = Path('../pairs/graphVPR/mp3d_'+scene_name+'_small/pairs-query-mp3d_8WUmhLawc2A_small.txt')
-    main_experiment(dataset, loc_pairs, features, matches)
+#    scene_name = '8WUmhLawc2A'
+#    dataset = Path('../datasets/graphVPR/dummy-old/mp3d_'+scene_name+'_small/')
+#    features = Path('../outputs/graphVPR/mp3d_'+scene_name+'_small/feats-superpoint-n4096-r1600.h5')
+#    matches = Path('../outputs/graphVPR/mp3d_'+scene_name+'_small/feats-superpoint-n4096-r1600_matches-superglue_pairs-query-mp3d_'+scene_name+'_small.h5')
+#    loc_pairs = Path('../pairs/graphVPR/mp3d_'+scene_name+'_small/pairs-query-mp3d_8WUmhLawc2A_small.txt')
+#    main_experiment(dataset, loc_pairs, features, matches)
