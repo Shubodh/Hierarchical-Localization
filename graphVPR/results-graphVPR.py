@@ -112,7 +112,8 @@ def main_viz(scene_name, folder_name, num_lines_dict, num_rooms_dict, matches, f
             result_list.append(best_key_split[1]== best_key_split[4])
             #if best_key_split[1]!= best_key_split[4]:
             if best_key_split[1]!= best_key_split[4]:
-                #print("incorrect: ", best_key_split)
+                print("incorrect: ", best_key_split)
+                #exit()
                 feat_ind = best_key_split[0] + '/' + best_key_split[1] + '/' + best_key_split[2] + '.png'
                 ref_ind = best_key_split[3].replace("_", "") + '/' + best_key_split[4] + '/' + best_key_split[5] + '.png'
     
@@ -159,15 +160,18 @@ feats-'+feat_method+ '_matches-' +match_method+ '_' +scene_name+h5_suffix))
     print(f"FINAL easy score: {scores_easy}, AVERAGE: {ave_easy} \n")
     print(f"FINAL diff score: {scores_diff}, AVERAGE: {ave_diff}")
 
-def viz_results(scene_names, folder_names, num_lines_dict, num_rooms_dict):
+def viz_results(retrieval_name, scene_names, folder_names, num_lines_dict, num_rooms_dict):
     feat_method = 'superpoint-n4096-r1600' #sift,  superpoint-n4096-r1600, d2net-ss
     match_method = 'superglue' #superglue, NN-mutual
     h5_suffix = '.h5'
 
     for folder_name, scene_name in zip(folder_names, scene_names):
-        matches = Path('../outputs/graphVPR/room_level_localization_small/' + folder_name+ '/\
+#        matches = Path('../outputs/graphVPR/room_level_localization_small/' + folder_name+ '/\
+#feats-'+feat_method+ '_matches-' +match_method+ '_pairs-' +folder_name+h5_suffix)
+        matches = Path('../outputs/graphVPR/room_level_localization_small/'+retrieval_name[0]+'/'+folder_name+ '/\
 feats-'+feat_method+ '_matches-' +match_method+ '_pairs-' +folder_name+h5_suffix)
-        features = Path('../outputs/graphVPR/room_level_localization_small/'+folder_name+'/\
+
+        features = Path('../outputs/graphVPR/room_level_localization_small/'+retrieval_name[0]+'/'+folder_name+'/\
 feats-'+feat_method + h5_suffix)
         main_viz(scene_name, folder_name, num_lines_dict, num_rooms_dict, matches, features)
 
@@ -275,6 +279,6 @@ if __name__ == '__main__':
         ]
 
 
-    retrieval_name = ["SP_SG_bruteforce", "hist-top3r-1i"]
-    print_results(retrieval_name,scene_names, folder_names, num_lines_dict_top3r, num_rooms_dict)
-    #viz_results(scene_names, folder_names, num_lines_dict, num_rooms_dict)
+    retrieval_folder_name = ["SP_SG_bruteforce", "hist-top3r-1i"]
+    #print_results(retrieval_folder_name,scene_names, folder_names, num_lines_dict_top3r, num_rooms_dict)
+    viz_results(retrieval_folder_name, scene_names, folder_names, num_lines_dict, num_rooms_dict)
