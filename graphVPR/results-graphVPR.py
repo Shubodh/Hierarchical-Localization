@@ -157,7 +157,7 @@ def print_results(retrieval_name, scene_names, folder_names, num_lines_dict, num
     for folder_name, scene_name in zip(folder_names, scene_names):
 #        matches = str(Path('../outputs/graphVPR/room_level_localization_small/' +retrieval_name[0]+ '/' + folder_name+ '/\
 #feats-'+feat_method+ '_matches-' +match_method+ '_pairs-' +folder_name+h5_suffix))
-        matches = str(Path('../outputs/graphVPR/room_level_localization_small/' +retrieval_name[3]+ '/' + scene_name+ '/\
+        matches = str(Path('../outputs/graphVPR/room_level_localization_small/' +retrieval_name[2]+ '/' + scene_name+ '/\
 feats-'+feat_method+ '_matches-' +match_method+ '_' +scene_name+h5_suffix))
         score_easy, score_diff = main(scene_name, folder_name, num_lines_dict, num_rooms_dict, matches)
         print(f"Score for {folder_name} is easy: {score_easy}; difficult {score_diff}")
@@ -266,7 +266,7 @@ if __name__ == '__main__':
 
     num_rooms_dict = dict_given_topK(num_lines_dict_top1, 0.5) # No of rooms in every scene
 
-    debug=True
+    debug=False
     if debug==True:
         scene_names = [
         '8WUmhLawc2A'
@@ -276,7 +276,7 @@ if __name__ == '__main__':
         '0_mp3d_8WUmhLawc2A'
         ]
 
-    num_lines_dict = num_lines_dict_netvlad3top
+    num_lines_dict = num_lines_dict_netvlad40top
     retrieval_folder_name = ["SP_SG_bruteforce", "hist-top3r-1i", "netvlad-top40", "netvlad-top3"]
     print_results(retrieval_folder_name,scene_names, folder_names, num_lines_dict, num_rooms_dict)
     #viz_results(retrieval_folder_name, scene_names, folder_names, num_lines_dict, num_rooms_dict)
