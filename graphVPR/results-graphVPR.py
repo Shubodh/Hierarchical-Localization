@@ -18,6 +18,12 @@ from hloc.utils.viz import (
         plot_images, plot_keypoints, plot_matches, cm_RdGn, add_text)
 from hloc.utils.io import read_image
 
+def dict_given_topK(num_lines_dict_top1, topK):
+    num_lines_dict_new = {}
+    for key in num_lines_dict_top1:
+        num_lines_dict_new[key] = int(num_lines_dict_top1[key]* topK)
+    return num_lines_dict_new
+
 def main(scene_name, folder_name, num_lines_dict, num_rooms_dict, matches):
     num_lines = num_lines_dict[folder_name]
     num_rooms = num_rooms_dict[folder_name]
@@ -56,6 +62,8 @@ def main(scene_name, folder_name, num_lines_dict, num_rooms_dict, matches):
             #print(best_key_split)
             result_list.append(best_key_split[1]== best_key_split[4])
             if best_key_split[1]!= best_key_split[4]:
+                # TODO: Look carefully: It's sometimes printing incorrect for "0_" but giving
+                # lower accuracy score for "difficult" case and vice versa. Some bug here, need to figure out.
                 print("incorrect: ", best_key_split)
 
         int_list = list(map(int, result_list))
@@ -149,7 +157,7 @@ def print_results(retrieval_name, scene_names, folder_names, num_lines_dict, num
     for folder_name, scene_name in zip(folder_names, scene_names):
 #        matches = str(Path('../outputs/graphVPR/room_level_localization_small/' +retrieval_name[0]+ '/' + folder_name+ '/\
 #feats-'+feat_method+ '_matches-' +match_method+ '_pairs-' +folder_name+h5_suffix))
-        matches = str(Path('../outputs/graphVPR/room_level_localization_small/' +retrieval_name[1]+ '/' + scene_name+ '/\
+        matches = str(Path('../outputs/graphVPR/room_level_localization_small/' +retrieval_name[3]+ '/' + scene_name+ '/\
 feats-'+feat_method+ '_matches-' +match_method+ '_' +scene_name+h5_suffix))
         score_easy, score_diff = main(scene_name, folder_name, num_lines_dict, num_rooms_dict, matches)
         print(f"Score for {folder_name} is easy: {score_easy}; difficult {score_diff}")
@@ -168,10 +176,12 @@ def viz_results(retrieval_name, scene_names, folder_names, num_lines_dict, num_r
     for folder_name, scene_name in zip(folder_names, scene_names):
 #        matches = Path('../outputs/graphVPR/room_level_localization_small/' + folder_name+ '/\
 #feats-'+feat_method+ '_matches-' +match_method+ '_pairs-' +folder_name+h5_suffix)
-        matches = Path('../outputs/graphVPR/room_level_localization_small/'+retrieval_name[0]+'/'+folder_name+ '/\
-feats-'+feat_method+ '_matches-' +match_method+ '_pairs-' +folder_name+h5_suffix)
+#        matches = Path('../outputs/graphVPR/room_level_localization_small/'+retrieval_name[2]+'/'+folder_name+ '/\
+#feats-'+feat_method+ '_matches-' +match_method+ '_pairs-' +folder_name+h5_suffix)
+        matches = Path('../outputs/graphVPR/room_level_localization_small/'+retrieval_name[2]+'/'+scene_name+ '/\
+feats-'+feat_method+ '_matches-' +match_method+ '_' +scene_name+h5_suffix)
 
-        features = Path('../outputs/graphVPR/room_level_localization_small/'+retrieval_name[0]+'/'+folder_name+'/\
+        features = Path('../outputs/graphVPR/room_level_localization_small/'+retrieval_name[2]+'/'+scene_name+'/\
 feats-'+feat_method + h5_suffix)
         main_viz(scene_name, folder_name, num_lines_dict, num_rooms_dict, matches, features)
 
@@ -214,7 +224,7 @@ if __name__ == '__main__':
     '14_mp3d_yqstnuAEVhm'
     ]
 
-    num_lines_dict = {
+    num_lines_dict_SPSGBF = {
     '0_mp3d_8WUmhLawc2A': 1984,
     '1_mp3d_EDJbREhghzL': 2624,
     '2_mp3d_i5noydFURQK': 1764,                                      
@@ -232,43 +242,31 @@ if __name__ == '__main__':
     '14_mp3d_yqstnuAEVhm': 1296 
     }
 
-    num_lines_dict_top3r = {
-    '0_mp3d_8WUmhLawc2A': 48,
-    '1_mp3d_EDJbREhghzL': 48,
-    '2_mp3d_i5noydFURQK': 42,                                      
-    '3_mp3d_jh4fc5c5qoQ': 30,              
-    '4_mp3d_mJXqzFtmKg4': 54,
-    '5_mp3d_qoiz87JEwZ2': 54,                                      
-    '6_mp3d_RPmz2sHmrrY': 36,            
-    '7_mp3d_S9hNv5qa7GM': 54,
-    '8_mp3d_ULsKaCPVFJR': 30,                                        
-    '9_mp3d_VzqfbhrpDEA': 54,                                       
-    '10_mp3d_wc2JMjhGNzB': 72,                                      
-    '11_mp3d_WYY7iVyf5p8': 30,            
-    '12_mp3d_X7HyMhZNoso': 42,                                      
-    '13_mp3d_YFuZgdQ5vWj': 48,                                     
-    '14_mp3d_yqstnuAEVhm': 36 
+    num_lines_dict_top1 = {
+    '0_mp3d_8WUmhLawc2A': 16,
+    '1_mp3d_EDJbREhghzL': 16,
+    '2_mp3d_i5noydFURQK': 14,                                      
+    '3_mp3d_jh4fc5c5qoQ': 10,              
+    '4_mp3d_mJXqzFtmKg4': 18,
+    '5_mp3d_qoiz87JEwZ2': 18,                                      
+    '6_mp3d_RPmz2sHmrrY': 12,            
+    '7_mp3d_S9hNv5qa7GM': 18,
+    '8_mp3d_ULsKaCPVFJR': 10,                                        
+    '9_mp3d_VzqfbhrpDEA': 18,                                       
+    '10_mp3d_wc2JMjhGNzB': 24,                                      
+    '11_mp3d_WYY7iVyf5p8': 10,            
+    '12_mp3d_X7HyMhZNoso': 14,                                      
+    '13_mp3d_YFuZgdQ5vWj': 16,                                     
+    '14_mp3d_yqstnuAEVhm': 12 
     }
 
-    num_rooms_dict = {
-    '0_mp3d_8WUmhLawc2A': 8,
-    '1_mp3d_EDJbREhghzL': 8,
-    '2_mp3d_i5noydFURQK': 7,
-    '3_mp3d_jh4fc5c5qoQ': 5,
-    '4_mp3d_mJXqzFtmKg4': 9,
-    '5_mp3d_qoiz87JEwZ2': 9,
-    '6_mp3d_RPmz2sHmrrY': 6,
-    '7_mp3d_S9hNv5qa7GM': 9,
-    '8_mp3d_ULsKaCPVFJR': 5,
-    '9_mp3d_VzqfbhrpDEA': 9,
-    '10_mp3d_wc2JMjhGNzB': 12,
-    '11_mp3d_WYY7iVyf5p8': 5,
-    '12_mp3d_X7HyMhZNoso': 7,
-    '13_mp3d_YFuZgdQ5vWj': 8,
-    '14_mp3d_yqstnuAEVhm': 6
-    }
+    num_lines_dict_top3r = dict_given_topK(num_lines_dict_top1, 3)
+    num_lines_dict_netvlad3top = dict_given_topK(num_lines_dict_top1, 3)
+    num_lines_dict_netvlad40top = dict_given_topK(num_lines_dict_top1, 40)
 
-    debug=False
+    num_rooms_dict = dict_given_topK(num_lines_dict_top1, 0.5) # No of rooms in every scene
+
+    debug=True
     if debug==True:
         scene_names = [
         '8WUmhLawc2A'
@@ -278,7 +276,7 @@ if __name__ == '__main__':
         '0_mp3d_8WUmhLawc2A'
         ]
 
-
-    retrieval_folder_name = ["SP_SG_bruteforce", "hist-top3r-1i"]
-    #print_results(retrieval_folder_name,scene_names, folder_names, num_lines_dict_top3r, num_rooms_dict)
-    viz_results(retrieval_folder_name, scene_names, folder_names, num_lines_dict, num_rooms_dict)
+    num_lines_dict = num_lines_dict_netvlad3top
+    retrieval_folder_name = ["SP_SG_bruteforce", "hist-top3r-1i", "netvlad-top40", "netvlad-top3"]
+    print_results(retrieval_folder_name,scene_names, folder_names, num_lines_dict, num_rooms_dict)
+    #viz_results(retrieval_folder_name, scene_names, folder_names, num_lines_dict, num_rooms_dict)

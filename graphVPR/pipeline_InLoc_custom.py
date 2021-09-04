@@ -165,7 +165,7 @@ if __name__ == '__main__':
     h5_suffix = '.h5'
 
 
-    debug=False
+    debug=True
     if debug==True:
         scene_names = [
         '8WUmhLawc2A'
@@ -175,7 +175,7 @@ if __name__ == '__main__':
         '0_mp3d_8WUmhLawc2A'
         ]
 
-    retrieval_name = ["SP_SG_bruteforce", "hist-top3r-1i", "netvlad-top40"]
+    retrieval_name = ["SP_SG_bruteforce", "hist-top3r-1i", "netvlad-top40", "netvlad-top3"]
     #so retrieval_name[0] is bruteforce, i.e. has ALL pairs, for every query, every ref would exist in that pair txt file.
     # change this if your dataset is somewhere else
     for scene_name, folder_name in tqdm(zip(scene_names, folder_names)):
@@ -183,9 +183,9 @@ if __name__ == '__main__':
         dataset = Path('../datasets/graphVPR/room_level_localization_small/' + folder_name + '/')
         pairs = Path('../pairs/graphVPR/room_level_localization_small/')
         #loc_pairs = pairs / (retrieval_name[0]+ '/'+'pairs-' + folder_name + txt_suffix)  #'pairs-query-netvlad40.txt'  # top 40 retrieved by NetVLAD
-        loc_pairs = pairs / (retrieval_name[2]+ '/'+ scene_name + txt_suffix)  
+        loc_pairs = pairs / (retrieval_name[3]+ '/'+ scene_name + txt_suffix)  
         #outputs = Path('../outputs/graphVPR/room_level_localization_small/'+ retrieval_name[0]+ '/' + folder_name + '/')  # where everything will be saved
-        outputs = Path('../outputs/graphVPR/room_level_localization_small/' +retrieval_name[2]+ '/'+ scene_name + '/')  # where everything will be saved
+        outputs = Path('../outputs/graphVPR/room_level_localization_small/' +retrieval_name[3]+ '/'+ scene_name + '/')  # where everything will be saved
         #results = outputs /  '_hloc_superpoint+superglue_NOTnetvlad40.txt'  # the result file
         results = outputs / '_hloc_superpoint+superglue_NOTnetvlad40.txt'  # the result file
 
