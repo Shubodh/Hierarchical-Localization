@@ -140,10 +140,11 @@ if __name__ == '__main__':
         '0_mp3d_8WUmhLawc2A'
         ]
     split_names = ['building_level_small_split1', 'building_level_small_split2']
+    split_names_DUC = ['DUC1_graphVPRsplit', 'DUC2_graphVPRsplit']
     retrieval_name = ["bruteforce", "hist-top3r-1i", "netvlad-top40", "netvlad-top3"]
     #so retrieval_name[0] is bruteforce, i.e. has ALL pairs, for every query, every ref would exist in that pair txt file.
     # change this if your dataset is somewhere else
-    for split in tqdm(split_names):
+    for split in tqdm(split_names_DUC):
         print(f"currently split: {split}")
         dataset = Path('../datasets/graphVPR/' + split + '/')
         pairs = Path('../pairs/graphVPR/' + split + '/')
