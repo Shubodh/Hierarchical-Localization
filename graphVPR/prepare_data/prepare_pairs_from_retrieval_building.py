@@ -21,7 +21,7 @@ if __name__ == '__main__':
     retrieval_name = retrieval_names[2]
     netvlad_h5_input = retrieval_names[2]
     for split in split_names:
-        output_pairs_folder = "../../pairs/graphVPR/" +split+'/' +retrieval_name + "/"
+        output_pairs_folder = "../../pairs/graphVPR/" +split+'/'
         print(f"Outputting to folder: {output_pairs_folder}.txt")
         if not os.path.exists(output_pairs_folder):
             os.mkdir(output_pairs_folder)
@@ -30,6 +30,6 @@ if __name__ == '__main__':
         " --descriptors ../../outputs/graphVPR/" + split +'/'
         +netvlad_h5_input + "/global-feats-netvlad.h5"
 
-        " --output " + output_pairs_folder  +  split + ".txt"
+        " --output " + output_pairs_folder  +  retrieval_name + ".txt"
         
         " --num_matched " + str(topK_num)+ " --query_prefix query --db_prefix references")

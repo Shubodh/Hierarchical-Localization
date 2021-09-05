@@ -32,10 +32,11 @@ if __name__ == '__main__':
         folder_names = [
         '0_mp3d_8WUmhLawc2A'
         ]
-    topK_num = 3 
-    retrieval_names = ["SP_SG_bruteforce", "hist-top3r-1i", "netvlad-top40", "netvlad-top3"]
+    #retrieval_names = ["SP_SG_bruteforce", "hist-top3r-1i", "netvlad-top40", "netvlad-top3"]
+    retrieval_names = ["SP_SG_bruteforce", "hist-top3r-1i", "netvlad-top40", "netvlad-top5","netvlad-top3", "netvlad-top1"]
     #input h5 file for netvlad-top40 or top3 would be same
-    retrieval_name = retrieval_names[3]
+    topK_num = 1 
+    retrieval_name = retrieval_names[5]
     netvlad_h5_input = retrieval_names[2]
     for scene_name in scene_names:
         output_pairs_folder = "../../pairs/graphVPR/room_level_localization_small/" +retrieval_name + "/"
