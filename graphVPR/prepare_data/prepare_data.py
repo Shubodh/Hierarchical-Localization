@@ -232,24 +232,34 @@ if __name__ == '__main__':
     '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-14_mp3d_yqstnuAEVhm.txt'
     ]
 
-    output_txt_split1 = '../../pairs/graphVPR/building_level_small_split1/bruteforce.txt'
-    output_txt_split2 = '../../pairs/graphVPR/building_level_small_split2/bruteforce.txt'
+#    output_txt_split1 = '../../pairs/graphVPR/building_level_small_split1/bruteforce.txt'
+#    output_txt_split2 = '../../pairs/graphVPR/building_level_small_split2/bruteforce.txt'
+#
+#
+#    Path("../../pairs/graphVPR/building_level_small_split1/").mkdir(parents=True, exist_ok=True)
+#    Path("../../pairs/graphVPR/building_level_small_split2/").mkdir(parents=True, exist_ok=True)
+#
+#    # 1st function: Prepare building level localization data from your mp3d. Currently still doing room level one manually, but 
+#    # will hardly take 2-3 lines of code TODO
+#    split_name1 = 'building_level_small_split1'
+#    split_name2='building_level_small_split2'
+#    #prep_building_level_localization(scene_names_split1, folder_names_split1, split_name1)
+#    #prep_building_level_localization(scene_names_split2, folder_names_split2, split_name2)
+#
+#    # 2nd function: Write pair txt files for  room level, in other words brute force pairs
+#    #print('writing pair texts in current folder itself')
+#    #for folder_name, output_txt in zip(folder_names, output_txts):
+#    #    write_pair_txt_room_level_localization(folder_name, scene_names, output_txt)
+#
+#    #  3rd function: Write pair txt files for building-level, in other words brute force pairs
+#    write_pair_txt_building_level_localization(split_name1, output_txt_split1)
+#    write_pair_txt_building_level_localization(split_name2, output_txt_split2)
 
-    Path("../../pairs/graphVPR/building_level_small_split1/").mkdir(parents=True, exist_ok=True)
-    Path("../../pairs/graphVPR/building_level_small_split2/").mkdir(parents=True, exist_ok=True)
-
-    # 1st function: Prepare building level localization data from your mp3d. Currently still doing room level one manually, but 
-    # will hardly take 2-3 lines of code TODO
-    split_name1 = 'building_level_small_split1'
-    split_name2='building_level_small_split2'
-    #prep_building_level_localization(scene_names_split1, folder_names_split1, split_name1)
-    #prep_building_level_localization(scene_names_split2, folder_names_split2, split_name2)
-
-    # 2nd function: Write pair txt files for  room level, in other words brute force pairs
-    #print('writing pair texts in current folder itself')
-    #for folder_name, output_txt in zip(folder_names, output_txts):
-    #    write_pair_txt_room_level_localization(folder_name, scene_names, output_txt)
-
-    #  3rd function: Write pair txt files for building-level, in other words brute force pairs
-    write_pair_txt_building_level_localization(split_name1, output_txt_split1)
-    write_pair_txt_building_level_localization(split_name2, output_txt_split2)
+    output_txt_DUC1split= '../../pairs/graphVPR/DUC1_graphVPRsplit/bruteforce.txt'
+    output_txt_DUC2split= '../../pairs/graphVPR/DUC2_graphVPRsplit/bruteforce.txt'
+    Path("../../pairs/graphVPR/DUC1_graphVPRsplit/").mkdir(parents=True, exist_ok=True)
+    Path("../../pairs/graphVPR/DUC2_graphVPRsplit/").mkdir(parents=True, exist_ok=True)
+    split_name1 = 'DUC1_graphVPRsplit'
+    split_name2='DUC2_graphVPRsplit'
+    write_pair_txt_building_level_localization(split_name1, output_txt_DUC1split)
+    write_pair_txt_building_level_localization(split_name2, output_txt_DUC2split)
