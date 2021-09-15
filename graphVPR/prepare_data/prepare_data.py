@@ -101,7 +101,7 @@ def write_pair_txt_room_level_localization(folder_name, scene_names, output_txt)
 
 def write_pair_txt_building_level_localization(split, output_txt):
     # writes pairs txt files given split names
-    inp = '/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/datasets/graphVPR/'
+    inp = '../../datasets/graphVPR/'
 
     ref_path = Path(inp + split + '/' + 'references/')
     query_path = Path(inp + split + '/' + 'query/')
@@ -140,97 +140,97 @@ def write_pair_txt_building_level_localization(split, output_txt):
 
 
 if __name__ == '__main__':
-    scene_names = [
-   "8WUmhLawc2A",
-   "EDJbREhghzL",
-   "i5noydFURQK",
-   "jh4fc5c5qoQ",
-   "mJXqzFtmKg4",
-   "qoiz87JEwZ2",
-   "RPmz2sHmrrY",
-   "S9hNv5qa7GM",
-   "ULsKaCPVFJR",
-   "VzqfbhrpDEA",
-   "wc2JMjhGNzB",
-   "WYY7iVyf5p8",
-   "X7HyMhZNoso",
-   "YFuZgdQ5vWj",
-   "yqstnuAEVhm"
-]
-    scene_names_split1 = [
-   "8WUmhLawc2A",
-   "EDJbREhghzL",
-   "i5noydFURQK",
-   "jh4fc5c5qoQ",
-   "mJXqzFtmKg4",
-   "qoiz87JEwZ2",
-   "RPmz2sHmrrY",
-   "S9hNv5qa7GM"
-]
-    scene_names_split2 = [
-   "ULsKaCPVFJR",
-   "VzqfbhrpDEA",
-   "wc2JMjhGNzB",
-   "WYY7iVyf5p8",
-   "X7HyMhZNoso",
-   "YFuZgdQ5vWj",
-   "yqstnuAEVhm"
-]
-    folder_names = [
-    '0_mp3d_8WUmhLawc2A',
-    '1_mp3d_EDJbREhghzL',
-    '2_mp3d_i5noydFURQK',
-    '3_mp3d_jh4fc5c5qoQ',
-    '4_mp3d_mJXqzFtmKg4',
-    '5_mp3d_qoiz87JEwZ2',
-    '6_mp3d_RPmz2sHmrrY',
-    '7_mp3d_S9hNv5qa7GM',
-    '8_mp3d_ULsKaCPVFJR',
-    '9_mp3d_VzqfbhrpDEA',
-    '10_mp3d_wc2JMjhGNzB',
-    '11_mp3d_WYY7iVyf5p8',
-    '12_mp3d_X7HyMhZNoso',
-    '13_mp3d_YFuZgdQ5vWj',
-    '14_mp3d_yqstnuAEVhm'
-    ]
-    folder_names_split1 = [
-    '0_mp3d_8WUmhLawc2A',
-    '1_mp3d_EDJbREhghzL',
-    '2_mp3d_i5noydFURQK',
-    '3_mp3d_jh4fc5c5qoQ',
-    '4_mp3d_mJXqzFtmKg4',
-    '5_mp3d_qoiz87JEwZ2',
-    '6_mp3d_RPmz2sHmrrY',
-    '7_mp3d_S9hNv5qa7GM',
-    ]
-    folder_names_split2 = [
-    '8_mp3d_ULsKaCPVFJR',
-    '9_mp3d_VzqfbhrpDEA',
-    '10_mp3d_wc2JMjhGNzB',
-    '11_mp3d_WYY7iVyf5p8',
-    '12_mp3d_X7HyMhZNoso',
-    '13_mp3d_YFuZgdQ5vWj',
-    '14_mp3d_yqstnuAEVhm'
-    ]
-
-    Path('../../pairs/graphVPR/room_level_localization_small/').mkdir(exist_ok=True)
-    output_txts = [
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-0_mp3d_8WUmhLawc2A.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-1_mp3d_EDJbREhghzL.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-2_mp3d_i5noydFURQK.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-3_mp3d_jh4fc5c5qoQ.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-4_mp3d_mJXqzFtmKg4.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-5_mp3d_qoiz87JEwZ2.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-6_mp3d_RPmz2sHmrrY.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-7_mp3d_S9hNv5qa7GM.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-8_mp3d_ULsKaCPVFJR.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-9_mp3d_VzqfbhrpDEA.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-10_mp3d_wc2JMjhGNzB.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-11_mp3d_WYY7iVyf5p8.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-12_mp3d_X7HyMhZNoso.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-13_mp3d_YFuZgdQ5vWj.txt',
-    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-14_mp3d_yqstnuAEVhm.txt'
-    ]
+##    scene_names = [
+##   "8WUmhLawc2A",
+##   "EDJbREhghzL",
+##   "i5noydFURQK",
+##   "jh4fc5c5qoQ",
+##   "mJXqzFtmKg4",
+##   "qoiz87JEwZ2",
+##   "RPmz2sHmrrY",
+##   "S9hNv5qa7GM",
+##   "ULsKaCPVFJR",
+##   "VzqfbhrpDEA",
+##   "wc2JMjhGNzB",
+##   "WYY7iVyf5p8",
+##   "X7HyMhZNoso",
+##   "YFuZgdQ5vWj",
+##   "yqstnuAEVhm"
+##]
+##    scene_names_split1 = [
+##   "8WUmhLawc2A",
+##   "EDJbREhghzL",
+##   "i5noydFURQK",
+##   "jh4fc5c5qoQ",
+##   "mJXqzFtmKg4",
+##   "qoiz87JEwZ2",
+##   "RPmz2sHmrrY",
+##   "S9hNv5qa7GM"
+##]
+##    scene_names_split2 = [
+##   "ULsKaCPVFJR",
+##   "VzqfbhrpDEA",
+##   "wc2JMjhGNzB",
+##   "WYY7iVyf5p8",
+##   "X7HyMhZNoso",
+##   "YFuZgdQ5vWj",
+##   "yqstnuAEVhm"
+##]
+##    folder_names = [
+##    '0_mp3d_8WUmhLawc2A',
+##    '1_mp3d_EDJbREhghzL',
+##    '2_mp3d_i5noydFURQK',
+##    '3_mp3d_jh4fc5c5qoQ',
+##    '4_mp3d_mJXqzFtmKg4',
+##    '5_mp3d_qoiz87JEwZ2',
+##    '6_mp3d_RPmz2sHmrrY',
+##    '7_mp3d_S9hNv5qa7GM',
+##    '8_mp3d_ULsKaCPVFJR',
+##    '9_mp3d_VzqfbhrpDEA',
+##    '10_mp3d_wc2JMjhGNzB',
+##    '11_mp3d_WYY7iVyf5p8',
+##    '12_mp3d_X7HyMhZNoso',
+##    '13_mp3d_YFuZgdQ5vWj',
+##    '14_mp3d_yqstnuAEVhm'
+##    ]
+##    folder_names_split1 = [
+##    '0_mp3d_8WUmhLawc2A',
+##    '1_mp3d_EDJbREhghzL',
+##    '2_mp3d_i5noydFURQK',
+##    '3_mp3d_jh4fc5c5qoQ',
+##    '4_mp3d_mJXqzFtmKg4',
+##    '5_mp3d_qoiz87JEwZ2',
+##    '6_mp3d_RPmz2sHmrrY',
+##    '7_mp3d_S9hNv5qa7GM',
+##    ]
+##    folder_names_split2 = [
+##    '8_mp3d_ULsKaCPVFJR',
+##    '9_mp3d_VzqfbhrpDEA',
+##    '10_mp3d_wc2JMjhGNzB',
+##    '11_mp3d_WYY7iVyf5p8',
+##    '12_mp3d_X7HyMhZNoso',
+##    '13_mp3d_YFuZgdQ5vWj',
+##    '14_mp3d_yqstnuAEVhm'
+##    ]
+##
+##    Path('../../pairs/graphVPR/room_level_localization_small/').mkdir(exist_ok=True)
+##    output_txts = [
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-0_mp3d_8WUmhLawc2A.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-1_mp3d_EDJbREhghzL.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-2_mp3d_i5noydFURQK.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-3_mp3d_jh4fc5c5qoQ.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-4_mp3d_mJXqzFtmKg4.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-5_mp3d_qoiz87JEwZ2.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-6_mp3d_RPmz2sHmrrY.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-7_mp3d_S9hNv5qa7GM.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-8_mp3d_ULsKaCPVFJR.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-9_mp3d_VzqfbhrpDEA.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-10_mp3d_wc2JMjhGNzB.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-11_mp3d_WYY7iVyf5p8.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-12_mp3d_X7HyMhZNoso.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-13_mp3d_YFuZgdQ5vWj.txt',
+##    '../../pairs/graphVPR/room_level_localization_small/SP_SG_bruteforce/pairs-14_mp3d_yqstnuAEVhm.txt'
+##    ]
 
 #    output_txt_split1 = '../../pairs/graphVPR/building_level_small_split1/bruteforce.txt'
 #    output_txt_split2 = '../../pairs/graphVPR/building_level_small_split2/bruteforce.txt'
@@ -255,11 +255,17 @@ if __name__ == '__main__':
 #    write_pair_txt_building_level_localization(split_name1, output_txt_split1)
 #    write_pair_txt_building_level_localization(split_name2, output_txt_split2)
 
-    output_txt_DUC1split= '../../pairs/graphVPR/DUC1_graphVPRsplit/bruteforce.txt'
-    output_txt_DUC2split= '../../pairs/graphVPR/DUC2_graphVPRsplit/bruteforce.txt'
-    Path("../../pairs/graphVPR/DUC1_graphVPRsplit/").mkdir(parents=True, exist_ok=True)
-    Path("../../pairs/graphVPR/DUC2_graphVPRsplit/").mkdir(parents=True, exist_ok=True)
-    split_name1 = 'DUC1_graphVPRsplit'
-    split_name2='DUC2_graphVPRsplit'
-    write_pair_txt_building_level_localization(split_name1, output_txt_DUC1split)
-    write_pair_txt_building_level_localization(split_name2, output_txt_DUC2split)
+###    output_txt_DUC1split= '../../pairs/graphVPR/DUC1_graphVPRsplit/bruteforce.txt'
+###    output_txt_DUC2split= '../../pairs/graphVPR/DUC2_graphVPRsplit/bruteforce.txt'
+###    Path("../../pairs/graphVPR/DUC1_graphVPRsplit/").mkdir(parents=True, exist_ok=True)
+###    Path("../../pairs/graphVPR/DUC2_graphVPRsplit/").mkdir(parents=True, exist_ok=True)
+###    split_name1 = 'DUC1_graphVPRsplit'
+###    split_name2='DUC2_graphVPRsplit'
+###    write_pair_txt_building_level_localization(split_name1, output_txt_DUC1split)
+###    write_pair_txt_building_level_localization(split_name2, output_txt_DUC2split)
+
+
+    output_txt_RIO= '../../pairs/graphVPR/RIO10_simple/bruteforce.txt'
+    Path("../../pairs/graphVPR/RIO10_simple/").mkdir(parents=True, exist_ok=True)
+    split_name1 = 'RIO10_simple'
+    write_pair_txt_building_level_localization(split_name1, output_txt_RIO)
