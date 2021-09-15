@@ -41,13 +41,16 @@ if __name__ == '__main__':
     txt_suffix = '.txt'
     h5_suffix = '.h5'
     split_names = ['building_level_small_split1', 'building_level_small_split2']
+    split_names_DUC = ['DUC1_graphVPRsplit', 'DUC2_graphVPRsplit']
+    split_names = split_names_DUC
+
     retrieval_name = ["bruteforce", "hist-top3r-1i", "netvlad-top40", "netvlad-top5","netvlad-top3", "netvlad-top1"]
     #so retrieval_name[0] is bruteforce, i.e. has ALL pairs, for every query, every ref would exist in that pair txt file.
     # change this if your dataset is somewhere else
     for split in split_names:
         print(f"currently split: {split}")
         pairs = Path('../pairs/graphVPR/' + split + '/')
-        loc_pairs = pairs / (retrieval_name[3] + txt_suffix)  
+        loc_pairs = pairs / (retrieval_name[2] + txt_suffix)  
         print(f"loaded loc_pair {loc_pairs}")
         dict_retrieval  = parse_retrieval(loc_pairs)
         accuracy(dict_retrieval)
