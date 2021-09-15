@@ -40,41 +40,51 @@ def copy_data(paths, split, freqs):
 
         # Copying ref data
         scene_path_ref = Path(scene_path_f + "seq" + str(scene_id[1]) + "_" + ref_rescan_ID + "/")
-        print(f"creating dataset: ref seqAB_{ref_rescan_ID}")
+        print(f"creating dataset: REF -> seq {scene_id[1]}_{ref_rescan_ID} at {out_path_ref}seq{scene_id[1]}/")
         rgb_files = sorted(list(scene_path_ref.glob('*color.jpg')))
         for rgb_file in rgb_files:
             img_id_full = re.split('frame-|.color.jpg', str(rgb_file))
             img_id = img_id_full[1]
             if int(img_id) % ref_freq == 0:
-                out_path_ref_final = Path(out_path_ref + str("seq" + str(scene_id[1]) + "/" + rgb_file.stem + '.jpg')) #appending file name to output folder path
-                print(rgb_file, out_path_ref_final)
-                #copy2(rgb_file, out_path)
+                Path(out_path_ref + "seq" + str(scene_id[1]) + "/").mkdir(parents=True, exist_ok=True)
+                out_path_ref_final = Path(out_path_ref + "seq" + str(scene_id[1]) + "/" + rgb_file.stem + '.jpg') #appending file name to output folder path
+                #print(rgb_file, out_path_ref_final)
+                copy2(rgb_file,out_path_ref_final)
 
         # Copying query data
         scene_path_query = Path(scene_path_f + "seq" + str(scene_id[1]) + "_" + query_rescan_ID + "/")
-        print(f"creating dataset: query seqAB_{query_rescan_ID}")
+        print(f"creating dataset: QUERY -> seq {scene_id[1]}_{query_rescan_ID} at {out_path_que}seq{scene_id[1]}/")
         rgb_files = sorted(list(scene_path_query.glob('*color.jpg')))
         for rgb_file in rgb_files:
             img_id_full = re.split('frame-|.color.jpg', str(rgb_file))
             img_id = img_id_full[1]
             if int(img_id) % query_freq == 0:
-                out_path_que_final = Path(out_path_que + str("seq" + str(scene_id[1]) + "/" + rgb_file.stem + '.jpg')) #appending file name to output folder path
-                print(rgb_file, out_path_que_final)
-                #copy2(rgb_file, out_path)
+                Path(out_path_que + "seq" + str(scene_id[1]) + "/").mkdir(parents=True, exist_ok=True)
+                out_path_que_final = Path(out_path_que + "seq" + str(scene_id[1]) + "/" + rgb_file.stem + '.jpg') #appending file name to output folder path
+                #print(rgb_file, out_path_que_final)
+                copy2(rgb_file,out_path_que_final)
 
 if __name__ == '__main__':
     ref_freq = 30 #every 30th image
-    query_freq = 300 #every 300th image
+    query_freq = 90 #every 90th image
 
     input_path = "/media/shubodh/DATA/Downloads/data-non-onedrive/RIO10_data/"
     out_path = "../../datasets/graphVPR/" # will be creating new splits for DUC1 and DUC2 named DUC1_graphVPRsplit and DUC2_graphVPRsplit here
     # set the above
-
     split02w01 = "RIO10_Rescan02w01" 
     split03w01 = "RIO10_Rescan03w01" 
+
+    Note = """IMPORTANT NOTE: Running this script won't overwrite the folders as a whole if there is an existing
+    folder at output destination. Rather it will append the images to existing folders. This
+    is undesirable behaviour. So you MUST delete output folders if they exist already, i.e. manually delete ../../datasets/graphVPR/RIO10_Rescan02w01 etc..
+    Enter 'y' after you delete: """
+
+    val = input(Note)
+    if val != 'y' :
+        raise ValueError(f"Your input must be y, instead got {val}")
 
     paths = [input_path, out_path]
     freqs = [ref_freq, query_freq]
 
     copy_data(paths, split02w01, freqs)
-    #copy_data(paths, split03w01, freqs)
+    copy_data(paths, split03w01, freqs)
