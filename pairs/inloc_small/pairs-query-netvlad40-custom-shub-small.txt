@@ -26,3 +26,15 @@ query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/023/DUC_cutout_023_330_30.jpg
 query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/023/DUC_cutout_023_0_30.jpg
 query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/022/DUC_cutout_022_150_30.jpg
 query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/022/DUC_cutout_022_90_-30.jpg
+query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/016/DUC_cutout_016_60_-30.jpg
+query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/023/DUC_cutout_023_240_-30.jpg
+query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/089/DUC_cutout_089_120_0.jpg
+query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/019/DUC_cutout_019_0_0.jpg
+query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/017/DUC_cutout_017_210_0.jpg
+query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/022/DUC_cutout_022_60_-30.jpg
+query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/024/DUC_cutout_024_300_-30.jpg
+query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/023/DUC_cutout_023_300_30.jpg
+query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/003/DUC_cutout_003_30_-30.jpg
+query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/020/DUC_cutout_020_90_0.jpg
+query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC1/021/DUC_cutout_021_210_30.jpg
+query/iphone7/IMG_0801.JPG cutouts_imageonly/DUC2/113/DUC_cutout_113_240_0.jpg
