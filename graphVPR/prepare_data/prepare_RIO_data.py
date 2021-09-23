@@ -68,7 +68,7 @@ if __name__ == '__main__':
     ref_freq = 30 #every 30th image
     query_freq = 90 #every 90th image
 
-    input_path = "/media/shubodh/DATA/Downloads/data-non-onedrive/RIO10_data/"
+    input_path = "/data/RIO10_data/"
     out_path = "../../datasets/graphVPR/" # will be creating new splits for DUC1 and DUC2 named DUC1_graphVPRsplit and DUC2_graphVPRsplit here
     # set the above
     split02w01 = "RIO10_Rescan02w01" 

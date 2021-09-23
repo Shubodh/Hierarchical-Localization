@@ -1,0 +1,8 @@
+incorrect:  ['query', '4_mp3d_mJXqzFtmKg4_theatre1', '4_rgb_mp3d_mJXqzFtmKg4_theatre1', '_references', '6_mp3d_RPmz2sHmrrY_room1', '12_rgb_mp3d_RPmz2sHmrrY_room1', '']
+incorrect:  ['query', '5_mp3d_qoiz87JEwZ2_room1', '0_rgb_mp3d_qoiz87JEwZ2_room1', '_references', '5_mp3d_qoiz87JEwZ2_room3', '28_rgb_mp3d_qoiz87JEwZ2_room3', '']
+incorrect:  ['query', '6_mp3d_RPmz2sHmrrY_lobby1', '0_rgb_mp3d_RPmz2sHmrrY_lobby1', '_references', '6_mp3d_RPmz2sHmrrY_kitchen', '12_rgb_mp3d_RPmz2sHmrrY_kitchen', '']
+Score for building_level_small_split1 is easy: 100.0; difficult 95.08196721311475
+Score for building_level_small_split2 is easy: 100.0; difficult 100.0
+FINAL easy score: [100.0, 100.0], AVERAGE: 100.0 
+
+FINAL diff score: [95.08196721311475, 100.0], AVERAGE: 97.54098360655738
