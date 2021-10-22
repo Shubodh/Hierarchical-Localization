@@ -1,6 +1,7 @@
 import argparse
 from pathlib import Path
 import numpy as np
+import open3d as o3d
 import h5py
 from scipy.io import loadmat
 import torch
@@ -58,6 +59,52 @@ def get_scan_pose(dataset_dir, rpath):
 
     return P_after_GICP
 
+def viz_cloud(mkp3d):
+    print(f"mkp3d.shape {mkp3d.shape}")
+    sys.exit()
+
+
+def viz_entire_room(dataset_dir, r):
+    # Load all the .jpg.mat files aka scan points of a particular room and visualize them
+    room_path = (dataset_dir / "cutouts_imageonly/DUC1/024/")
+    mat_files = sorted(list(room_path.glob('*.jpg.mat')))
+
+    mat_files_small = mat_files[:6]#, mat_files[3]]
+
+    pcds = []
+
+    for mat_file in mat_files_small:
+        print(mat_file)
+
+        xyz_file  = loadmat(Path(mat_file))["XYZcut"]
+        rgb_file = loadmat(Path(mat_file))["RGBcut"]
+
+        xyz_sp = (xyz_file.shape)
+
+        xyz_file = (xyz_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
+        rgb_file = (rgb_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
+
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(xyz_file)
+        pcd.colors = o3d.utility.Vector3dVector(rgb_file/255.0)
+
+        pcds.append(pcd)
+    
+    pcd_final = o3d.geometry.PointCloud()
+    for pcd_each in pcds:
+        pcd_final += pcd_each
+
+    mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
+    o3d.visualization.draw_geometries([pcd_final, mesh])
+    
+    sys.exit()
+#    scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
+#    mkp3d, valid = interpolate_scan(scan_r, mkpr)
+#    Tr = get_scan_pose(dataset_dir, r)
+#    mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
+#    print("DEBUG")
+
+
 
 def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
                       skip=None):
@@ -85,10 +132,13 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         mkpq, mkpr = kpq[v], kpr[m[v]]
         num_matches += len(mkpq)
 
+        viz_entire_room(dataset_dir, r)
         scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
+        #print(f"mkpr, scan_r: {mkpr.shape} {scan_r.shape}")
         mkp3d, valid = interpolate_scan(scan_r, mkpr)
         Tr = get_scan_pose(dataset_dir, r)
         mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
+        viz_cloud(mkp3d)
 
         all_mkpq.append(mkpq[valid])
         all_mkpr.append(mkpr[valid])
@@ -185,7 +235,7 @@ def main(dataset_dir, retrieval, features, matches, results,
         'retrieval': retrieval,
         'loc': {},
     }
-    logging.info('Starting localization...')
+    #logging.info('Starting localization...')
     for q in tqdm(queries):
         db = retrieval_dict[q]
         ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster(
