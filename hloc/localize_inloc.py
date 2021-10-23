@@ -59,17 +59,45 @@ def get_scan_pose(dataset_dir, rpath):
 
     return P_after_GICP
 
-def viz_cloud(mkp3d):
-    print(f"mkp3d.shape {mkp3d.shape}")
+
+def viz_entire_room_file(dataset_dir, downsample=True):
+    mat_file = (dataset_dir / "scans/DUC1/DUC_scan_024.ptx.mat")
+    print(mat_file)
+
+    xyz_file  = loadmat(Path(mat_file))#["XYZcut"]
+    #print(xyz_file["A"])
+    #print(xyz_file.keys())
     sys.exit()
+    rgb_file = loadmat(Path(mat_file))["RGBcut"]
 
+    xyz_sp = (xyz_file.shape)
 
-def viz_entire_room(dataset_dir, r):
+    xyz_file = (xyz_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
+    rgb_file = (rgb_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
+
+    pcd = o3d.geometry.PointCloud()
+    pcd.points = o3d.utility.Vector3dVector(xyz_file)
+    pcd.colors = o3d.utility.Vector3dVector(rgb_file/255.0)
+
+    
+
+    # Downsampling for quicker visualization. Not needed if less pcds.
+    print(f"len(pcd.points): {len(pcd.points)}")
+    if downsample == True:
+        pcd_final = pcd.voxel_down_sample(voxel_size=0.01)  
+        print(f"After downsampling: {len(pcd.points)}")
+
+    mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
+    o3d.visualization.draw_geometries([pcd_final, mesh])
+    
+
+def viz_entire_room_by_registering(dataset_dir, r, downsample = True):
     # Load all the .jpg.mat files aka scan points of a particular room and visualize them
     room_path = (dataset_dir / "cutouts_imageonly/DUC1/024/")
     mat_files = sorted(list(room_path.glob('*.jpg.mat')))
 
-    mat_files_small = mat_files[:6]#, mat_files[3]]
+
+    mat_files_small = mat_files[:6]
 
     pcds = []
 
@@ -93,6 +121,13 @@ def viz_entire_room(dataset_dir, r):
     pcd_final = o3d.geometry.PointCloud()
     for pcd_each in pcds:
         pcd_final += pcd_each
+    
+
+    # Downsampling for quicker visualization. Not needed if less pcds.
+    print(f"len(pcd.points): {len(pcd_final.points)}")
+    if downsample == True:
+        pcd_final = pcd_final.voxel_down_sample(voxel_size=0.01)  
+        print(f"After downsampling: {len(pcd_final.points)}")
 
     mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
     o3d.visualization.draw_geometries([pcd_final, mesh])
@@ -132,13 +167,11 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         mkpq, mkpr = kpq[v], kpr[m[v]]
         num_matches += len(mkpq)
 
-        viz_entire_room(dataset_dir, r)
+        #viz_entire_room_by_registering(dataset_dir, r)
         scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
-        #print(f"mkpr, scan_r: {mkpr.shape} {scan_r.shape}")
         mkp3d, valid = interpolate_scan(scan_r, mkpr)
         Tr = get_scan_pose(dataset_dir, r)
         mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
-        viz_cloud(mkp3d)
 
         all_mkpq.append(mkpq[valid])
         all_mkpr.append(mkpr[valid])
