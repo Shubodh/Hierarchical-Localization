@@ -11,6 +11,11 @@ import pickle
 import cv2
 import pycolmap
 import sys
+import png
+import re
+from scipy.spatial.transform import Rotation as R
+import json
+
 
 from .utils.parsers import parse_retrieval, names_to_pair
 
@@ -144,7 +149,8 @@ def viz_entire_room_by_registering(dataset_dir, r, downsample = True):
 def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
                       skip=None):
     height, width = cv2.imread(str(dataset_dir / q)).shape[:2]
-    cx = .5 * width
+    #print(width, height)
+    cx = .5 * width 
     cy = .5 * height
     focal_length = 4032. * 28. / 36.
 
@@ -169,9 +175,124 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
 
         #viz_entire_room_by_registering(dataset_dir, r)
         scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
+        # Note that width height of query different from reference
+        #print(f"DEBUG 1:  width, height - {scan_r.shape, width, height}")
         mkp3d, valid = interpolate_scan(scan_r, mkpr)
         Tr = get_scan_pose(dataset_dir, r)
         mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
+
+        all_mkpq.append(mkpq[valid])
+        all_mkpr.append(mkpr[valid])
+        all_mkp3d.append(mkp3d[valid])
+        all_indices.append(np.full(np.count_nonzero(valid), i))
+
+    all_mkpq = np.concatenate(all_mkpq, 0)
+    all_mkpr = np.concatenate(all_mkpr, 0)
+    all_mkp3d = np.concatenate(all_mkp3d, 0)
+    all_indices = np.concatenate(all_indices, 0)
+
+    cfg = {
+        'model': 'SIMPLE_PINHOLE',
+        'width': width,
+        'height': height,
+        'params': [focal_length, cx, cy]
+    }
+    ret = pycolmap.absolute_pose_estimation(
+        all_mkpq, all_mkp3d, cfg, 48.00)
+    ret['cfg'] = cfg
+    return ret, all_mkpq, all_mkpr, all_mkp3d, all_indices, num_matches
+
+
+def load_depth_to_scan(depth_path, pos, rot):
+    # 1. Converts depth to scan
+    # 2. bring it to global frame from perspective frame
+    rotation_matrix = R.from_quat(rot).as_matrix()
+    position = pos.reshape((3, 1))
+    T = np.concatenate((rotation_matrix, position), axis=1)
+    T = np.concatenate((T, np.array([[0,0,0,1]])), axis=0)
+
+    fx, fy, cx, cy, width, height = 960, 960, 960.5, 540.5, 1920, 1080
+
+    K = np.array([
+    [fx, 0., cx, 0.],
+    [0., fy, cy, 0.],
+    [0., 0.,  1, 0],
+    [0., 0., 0, 1]])
+
+    xs = (np.linspace(0, width, width))
+    ys = (np.linspace(0, height, height))
+    xs, ys = np.meshgrid(xs, ys)
+
+    r=png.Reader(filename= depth_path )
+    pngdata_depth = r.asDirect()
+    depth = np.vstack(map(np.uint16, list(pngdata_depth[2])))
+    depth = depth/100.0
+
+    xys =  np.vstack(((xs) * depth, (ys) * depth, depth, np.ones(depth.shape)))# -depth or depth in 3rd arg?
+    xys = xys.reshape(4, -1)
+    xy_c0 = np.matmul(np.linalg.inv(K), xys)
+
+    xyz = T @ xy_c0
+    xyz = xyz.T[:,:3]
+
+    xyz = xyz.reshape((height, width, 3))
+    #print(f"DEBUG X: {xyz.shape}")
+    return xyz
+
+def pose_from_cluster_mp3d(dataset_dir, q, retrieved, feature_file, match_file,
+                      skip=None):
+    height, width = cv2.imread(str(dataset_dir / q)).shape[:2]
+    fx, fy, cx, cy, width, height = 960, 960, 960.5, 540.5, 1920, 1080
+    focal_length = fx
+    #cx = .5 * width #TO-CHECK-1: Should cx be exactly half of width? Above it's not.
+    #cy = .5 * height
+    #focal_length = 4032. * 28. / 36.
+
+
+    all_mkpq = []
+    all_mkpr = []
+    all_mkp3d = []
+    all_indices = []
+    kpq = feature_file[q]['keypoints'].__array__()
+    num_matches = 0
+
+    for i, r in enumerate(retrieved):
+        kpr = feature_file[r]['keypoints'].__array__()
+        pair = names_to_pair(q, r)
+        m = match_file[pair]['matches0'].__array__()
+        v = (m > -1)
+
+        if skip and (np.count_nonzero(v) < skip):
+            continue
+
+        mkpq, mkpr = kpq[v], kpr[m[v]]
+        num_matches += len(mkpq)
+
+        #viz_entire_room_by_registering(dataset_dir, r)
+        #scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
+        depth_base_path = Path('/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/x-view-scratch/data_collection/x-view/mp3d/')
+        r_split = re.split('/|.png', str(r))
+        im_split = re.split('_', r_split[2])
+        env_name, room_name, img_id = im_split[3], im_split[4], im_split[0]
+        depth_fin_path = env_name + "/rooms/" + room_name + "/raw_data/" +  img_id + "_depth.png"
+        depth_full_path = depth_base_path / depth_fin_path
+        #samply_dep = Path('/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/datasets/graphVPR/room_level_localization_small/0_mp3d_8WUmhLawc2A/references/bathroom1/8_rgb_mp3d_8WUmhLawc2A_bathroom1_depth.png')
+        file_json = depth_base_path / (env_name + "/rooms/" + room_name + "/poses_cleaned.json")
+        with open(file_json, 'r') as f:
+            poses = json.load(f)
+        # pose_local_to_global_full
+        rot = np.array(poses['rotation'][int(img_id)]).astype(np.float64)
+        pos = np.array(poses['position'][int(img_id)]).astype(np.float64)
+        #print("DeBuG")
+        #pos, rot = lines[int(img_id)*2], lines[int(img_id)*2 + 1] #rot in quat format: x, y, z, w
+        #print(im_split, pos, rot)
+        #sys.exit()
+        scan_r = load_depth_to_scan(depth_full_path, pos, rot)
+        #print(f"DEBUG 3 {scan_r.shape}")
+        #sys.exit()
+        mkp3d, valid = interpolate_scan(scan_r, mkpr)
+        #Tr = get_scan_pose(dataset_dir, r)
+        #mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
 
         all_mkpq.append(mkpq[valid])
         all_mkpr.append(mkpr[valid])
@@ -271,7 +392,7 @@ def main(dataset_dir, retrieval, features, matches, results,
     #logging.info('Starting localization...')
     for q in tqdm(queries):
         db = retrieval_dict[q]
-        ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster(
+        ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster_mp3d(
             dataset_dir, q, db, feature_file, match_file, skip_matches)
 
         poses[q] = (ret['qvec'], ret['tvec'])
