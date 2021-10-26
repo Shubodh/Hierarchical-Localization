@@ -392,7 +392,7 @@ def main(dataset_dir, retrieval, features, matches, results,
     #logging.info('Starting localization...')
     for q in tqdm(queries):
         db = retrieval_dict[q]
-        ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster_mp3d(
+        ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster(
             dataset_dir, q, db, feature_file, match_file, skip_matches)
 
         poses[q] = (ret['qvec'], ret['tvec'])
