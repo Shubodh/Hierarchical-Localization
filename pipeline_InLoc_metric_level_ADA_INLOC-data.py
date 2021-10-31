@@ -16,7 +16,7 @@ import time
 from hloc import extract_features, match_features, localize_inloc, visualization
 
 #import hloc
-print("carefully inspect which hloc it is, whether the docker one or normal modified one.")
+#print("carefully inspect which hloc it is, whether the docker one or normal modified one.")
 #print(hloc)
 
 
@@ -41,7 +41,7 @@ dataset = Path('/data/InLoc_dataset/')  # change this if your dataset is somewhe
 pairs = Path('pairs/inloc/')
 loc_pairs = pairs / 'pairs-query-netvlad40.txt'  # top 40 retrieved by NetVLAD
 
-outputs = Path('outputs/inloc/')  # where everything will be saved
+outputs = Path('/data/InLoc_dataset/outputs/inloc/')  # where everything will be saved
 results = outputs / 'InLoc_hloc_superpoint+superglue_netvlad40_dt261021-t1706.txt'  # the result file
 
 
