@@ -1,3 +1,4 @@
+# netvlad40-minustopKrooms
 # The idea here is: (Doesn't need GT query room IDs for this.)
 # Do NetVLAD40 even now and output dict of room_ids from these 40 images (dict 
 # -> {building_room_id:freq of that room}, example {DUC1_002:6}), and choose only images of top3 freq
