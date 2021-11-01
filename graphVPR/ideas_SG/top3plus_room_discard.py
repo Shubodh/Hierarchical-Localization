@@ -54,6 +54,6 @@ if __name__ == '__main__':
                 pairs_output_txt.append(pair)
 
         #print(len(retrieval_dict_new[key_1]))
-    print(pairs_output_txt)
-    with open(output_pairs, 'w') as f:
-        f.write('\n'.join(' '.join([i, j]) for i, j in pairs_output_txt))
+    #print(pairs_output_txt)
+#    with open(output_pairs, 'w') as f:
+#        f.write('\n'.join(' '.join([i, j]) for i, j in pairs_output_txt))

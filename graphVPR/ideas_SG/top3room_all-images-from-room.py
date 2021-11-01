@@ -13,7 +13,7 @@ from hloc.utils.parsers import parse_retrieval, names_to_pair
 if __name__ == '__main__':
     pairs = Path('../../pairs/inloc/')
     loc_pairs = pairs / 'pairs-query-netvlad40.txt'  # top 40 retrieved by NetVLAD
-    output_pairs = pairs / 'pairs-query-netvlad40-minustopKrooms.txt'
+    output_pairs = pairs / 'pairs-query-top4room_allimagesfromroom.txt'
     retrieval_dict = parse_retrieval(loc_pairs)
     queries = list(retrieval_dict.keys())
     pairs_output_txt = []
@@ -36,26 +36,28 @@ if __name__ == '__main__':
 
         topK_rooms = 4 #top3 gives 27 images, top4 gives 33
         top_K_ids = sorted(room_freq, key=room_freq.get, reverse=True)[:topK_rooms]
+        #print(top_K_ids) #['DUC1_023', 'DUC1_024', 'DUC1_022', 'DUC1_021']
 
         retrieval_dict_new = {}
-        for r in retrieval_dict[query]:
+        for building_room_id in top_K_ids:
             #print(r)
-            r_split = re.split('/|.jpg', str(r))
-            base_path = Path(r).parents[0]
-            print(base_path)
-            sys.exit()
-            rgb_files = list(room_rgb.glob('*_0.jpg'))
-            building_room_id = (r_split[2]+"_"+ r_split[3])
-            room_rgb =  room / 'raw_data/'
-            query_list = []
-            if building_room_id in top_K_ids: 
-                retrieval_dict_new.setdefault(query, [])
-                retrieval_dict_new[query].append(r)
+            r_split = re.split('_', str(building_room_id))
+            #/data/InLoc_dataset/database/cutouts/DUC1/024/DUC_cutout_024_150_0.jpg
+            base_path = "/data/InLoc_dataset/"
+            middle_path = str("database/cutouts/" + r_split[0] + "/" + r_split[1])
+            total_path = Path(base_path + middle_path)
+            jpg_only0_files = list(total_path.glob('*_0.jpg'))
 
-                pair = (query, r)
+            for jpg_each in jpg_only0_files:
+
+                retrieval_dict_new.setdefault(query, [])
+                jpg_split = re.split('/data/InLoc_dataset/', str(jpg_each))
+                retrieval_dict_new[query].append(jpg_split[1])
+
+                pair = (query, jpg_split[1])
                 pairs_output_txt.append(pair)
 
         #print(len(retrieval_dict_new[query]))
     print(pairs_output_txt)
-    #with open(output_pairs, 'w') as f:
-    #    f.write('\n'.join(' '.join([i, j]) for i, j in pairs_output_txt))
+    with open(output_pairs, 'w') as f:
+        f.write('\n'.join(' '.join([i, j]) for i, j in pairs_output_txt))
