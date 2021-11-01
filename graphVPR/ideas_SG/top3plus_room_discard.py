@@ -16,8 +16,8 @@ if __name__ == '__main__':
     # SET BELOW
     pairs = Path('../../pairs/inloc/')
     loc_pairs = pairs / 'pairs-query-netvlad40.txt'  # top 40 retrieved by NetVLAD
-    output_pairs = pairs / 'pairs-query-netvlad40-minustop5rooms.txt'
-    topK_rooms = 5 #top3 gives 27 images, top4 gives 33
+    output_pairs = pairs / 'pairs-query-netvlad40-minustop3rooms.txt'
+    topK_rooms = 3 #top3 gives 27 images, top4 gives 33
 
     retrieval_dict = parse_retrieval(loc_pairs)
     queries = list(retrieval_dict.keys())
@@ -54,6 +54,6 @@ if __name__ == '__main__':
                 pairs_output_txt.append(pair)
 
         #print(len(retrieval_dict_new[key_1]))
-    #print(pairs_output_txt)
-#    with open(output_pairs, 'w') as f:
-#        f.write('\n'.join(' '.join([i, j]) for i, j in pairs_output_txt))
+    print(pairs_output_txt)
+    with open(output_pairs, 'w') as f:
+        f.write('\n'.join(' '.join([i, j]) for i, j in pairs_output_txt))

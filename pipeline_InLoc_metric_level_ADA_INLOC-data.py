@@ -39,10 +39,10 @@ import matplotlib.pyplot as plt
 dataset = Path('/data/InLoc_dataset/')  # change this if your dataset is somewhere else
 
 pairs = Path('pairs/inloc/')
-loc_pairs = pairs / 'pairs-query-netvlad40-minustop5rooms.txt'  # top 40 retrieved by NetVLAD
+loc_pairs = pairs / 'pairs-query-netvlad40-minustop3rooms.txt'  # top 40 retrieved by NetVLAD
 
 outputs = Path('/data/InLoc_dataset/outputs/inloc/')  # where everything will be saved
-results = outputs / 'InLoc_hloc_superpoint+superglue_netvlad40-minustop5rooms_skip10_dt011121-t0224.txt'  # the result file
+results = outputs / 'InLoc_hloc_superpoint+superglue_netvlad40-minustop3rooms_skip10_dt011121-t0331.txt'  # the result file
 
 
 # list the standard configurations available
