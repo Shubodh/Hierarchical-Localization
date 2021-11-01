@@ -41,8 +41,13 @@ if __name__ == '__main__':
         for r in retrieval_dict[query]:
             #print(r)
             r_split = re.split('/|.jpg', str(r))
-            building_room_id = (r_split[2]+"_"+ r_split[3])
+            base_path = Path(r).parents[0]
+            print(base_path)
             sys.exit()
+            rgb_files = list(room_rgb.glob('*_0.jpg'))
+            building_room_id = (r_split[2]+"_"+ r_split[3])
+            room_rgb =  room / 'raw_data/'
+            query_list = []
             if building_room_id in top_K_ids: 
                 retrieval_dict_new.setdefault(query, [])
                 retrieval_dict_new[query].append(r)
