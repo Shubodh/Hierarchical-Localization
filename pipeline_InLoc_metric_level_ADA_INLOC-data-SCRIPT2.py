@@ -42,7 +42,7 @@ pairs = Path('pairs/inloc/')
 loc_pairs = pairs / 'pairs-query-top4room_allimagesfromroom.txt'  # top 40 retrieved by NetVLAD
 
 outputs = Path('/data/InLoc_dataset/outputs/inloc/')  # where everything will be saved
-results = outputs / 'InLoc_hloc_superpoint+superglue_top4room_allimagesfromroom_skip10_dt011121-t0512.txt'  # the result file
+results = outputs / 'InLoc_hloc_superpoint+superglue_top4room_allimagesfromroom_skip20_dt011121-t0534.txt'  # the result file
 
 
 # list the standard configurations available
@@ -69,7 +69,7 @@ match_path = match_features.main(matcher_conf, loc_pairs, feature_conf['output']
 
 localize_inloc.main(
     dataset, loc_pairs, feature_path, match_path, results,
-    skip_matches=10) #20. 10 is giving error currently, for 1 query, unable to find any matches > 20  # skip database images with too few matches
+    skip_matches=20) #20. 10 is giving error currently, for 1 query, unable to find any matches > 20  # skip database images with too few matches
 
 
 # ## Visualization

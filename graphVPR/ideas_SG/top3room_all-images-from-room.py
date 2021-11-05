@@ -1,6 +1,6 @@
 # The idea here is: (Doesn't need GT query room IDs for this.)
 # Similar to top3plus_room_discard.py but here, in addition to discarding images from 
-# non-top3, we also consider ALL the room images from top3 rooms.
+# non-top3, we also consider ALL the room images from top3 rooms. To be more precise, every 3rd image, i.e. 0.jpg (ignoring -30 & 30).
 
 import sys
 from pathlib import Path
