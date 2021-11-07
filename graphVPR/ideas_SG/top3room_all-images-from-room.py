@@ -11,6 +11,7 @@ from hloc.utils.parsers import parse_retrieval, names_to_pair
 
 
 if __name__ == '__main__':
+    all_images_not_just_third = True # True if all images, False if you want every 3rd image, i.e.  ONLY _0.jpg
     pairs = Path('../../pairs/inloc/')
     loc_pairs = pairs / 'pairs-query-netvlad40.txt'  # top 40 retrieved by NetVLAD
     output_pairs = pairs / 'pairs-query-top4room_allimagesfromroom.txt'
@@ -46,7 +47,10 @@ if __name__ == '__main__':
             base_path = "/data/InLoc_dataset/"
             middle_path = str("database/cutouts/" + r_split[0] + "/" + r_split[1])
             total_path = Path(base_path + middle_path)
-            jpg_only0_files = list(total_path.glob('*_0.jpg'))
+            if all_images_not_just_third:
+                jpg_only0_files = list(total_path.glob('*.jpg'))
+            else:
+                jpg_only0_files = list(total_path.glob('*_0.jpg'))
 
             for jpg_each in jpg_only0_files:
 

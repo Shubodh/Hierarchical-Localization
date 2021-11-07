@@ -42,7 +42,7 @@ pairs = Path('pairs/inloc/')
 loc_pairs = pairs / 'pairs-query-top4room_allimagesfromroom.txt'  # top 40 retrieved by NetVLAD
 
 outputs = Path('/data/InLoc_dataset/outputs/inloc/')  # where everything will be saved
-results = outputs / 'InLoc_hloc_superpoint+superglue_top4room_allimagesfromroom_skip20_dt011121-t0534.txt'  # the result file
+results = outputs / 'InLoc_hloc_superpoint+superglue_top4room_allimagesfromroom_skip20_dt061121-t0111.txt'  # the result file
 
 
 # list the standard configurations available
