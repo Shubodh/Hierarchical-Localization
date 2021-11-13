@@ -22,20 +22,22 @@ from .utils.parsers import parse_retrieval, names_to_pair
 
 def interpolate_scan(scan, kp):
     h, w, c = scan.shape
-    kp = kp / np.array([[w-1, h-1]]) * 2 - 1
+    kp = kp / np.array([[w-1, h-1]]) * 2 - 1 # To normalize kp values b/w [-1, 1] i.e. [0, 1] * 2 - 1
     assert np.all(kp > -1) and np.all(kp < 1)
-    scan = torch.from_numpy(scan).permute(2, 0, 1)[None]
-    kp = torch.from_numpy(kp)[None, None]
+    scan = torch.from_numpy(scan).permute(2, 0, 1)[None] # [1, 3, 1200, 1600]
+    kp = torch.from_numpy(kp)[None, None] # None adds extra 1 dimension: kp shape now -> [1,1,X,2], X being number of keypoints for an image
     grid_sample = torch.nn.functional.grid_sample
 
     # To maximize the number of points that have depth:
     # do bilinear interpolation first and then nearest for the remaining points
     interp_lin = grid_sample(
-        scan, kp, align_corners=True, mode='bilinear')[0, :, 0]
+        scan, kp, align_corners=True, mode='bilinear')[0, :, 0] #output shape: [3,no_of_kps]
     interp_nn = torch.nn.functional.grid_sample(
         scan, kp, align_corners=True, mode='nearest')[0, :, 0]
     interp = torch.where(torch.isnan(interp_lin), interp_nn, interp_lin)
     valid = ~torch.any(torch.isnan(interp), 0)
+    #alid = torch.nonzero(~valid)
+    #print(valid[:25], alid)
 
     kp3d = interp.T.numpy()
     valid = valid.numpy()
@@ -66,6 +68,7 @@ def get_scan_pose(dataset_dir, rpath):
 
 
 def viz_entire_room_file(dataset_dir, downsample=True):
+    # room level pcds are never used in this hloc pipeline
     mat_file = (dataset_dir / "scans/DUC1/DUC_scan_024.ptx.mat")
     print(mat_file)
 

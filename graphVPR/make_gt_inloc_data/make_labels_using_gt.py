@@ -50,8 +50,8 @@ def make_queries_all(query_base_path, duc_lines_imgs, duc_lines):
             dict_duc[i] = [dict_duc[i][0]]
     print("finally each query will be transfered as follows:")
     for i in dict_duc.keys():
-        print(os.path.join(query_base_path+"iphone7",i) + '->' + os.path.join(query_base_path+"query_SG",dict_duc[i][0]))
-        transfer_src_dest(os.path.join(query_base_path+"iphone7",i), os.path.join(query_base_path+"query_SG",dict_duc[i][0]))
+        print(os.path.join(query_base_path+"iphone7",i) + '->' + os.path.join(query_base_path+"query_SG_GT",dict_duc[i][0]))
+        transfer_src_dest(os.path.join(query_base_path+"iphone7",i), os.path.join(query_base_path+"query_SG_GT",dict_duc[i][0]))
 
 
 if __name__ == '__main__':
@@ -62,7 +62,7 @@ if __name__ == '__main__':
     
     duc_lines = []
     amb_lines = []
-    for line in fileinput.input(files='final_raw_data.txt'):
+    for line in fileinput.input(files='gt_labels.txt'):
         if 'DUC' in line:
             duc_lines.append(line.strip())
         elif 'ambigious' not in line:
