@@ -18,6 +18,7 @@ import json
 
 
 from .utils.parsers import parse_retrieval, names_to_pair
+from .utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint
 
 
 def interpolate_scan(scan, kp):
@@ -99,13 +100,13 @@ def viz_entire_room_file(dataset_dir, downsample=True):
     o3d.visualization.draw_geometries([pcd_final, mesh])
     
 
-def viz_entire_room_by_registering(dataset_dir, r, downsample = True):
+def viz_entire_room_by_registering(dataset_dir, r, downsample = False):
     # Load all the .jpg.mat files aka scan points of a particular room and visualize them
-    room_path = (dataset_dir / "cutouts_imageonly/DUC1/024/")
+    room_path = (dataset_dir / "cutouts_imageonly/DUC1/024/") #024, 025, 005, 084, 010
     mat_files = sorted(list(room_path.glob('*.jpg.mat')))
 
 
-    mat_files_small = mat_files[:6]
+    mat_files_small = mat_files[:3] #6
 
     pcds = []
 
@@ -138,8 +139,19 @@ def viz_entire_room_by_registering(dataset_dir, r, downsample = True):
         print(f"After downsampling: {len(pcd_final.points)}")
 
     mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
-    o3d.visualization.draw_geometries([pcd_final, mesh])
-    
+    #print(mesh.get_center())
+    filename = "graphVPR/ideas_SG/place-graphVPR/rand_json/viewpoint_1_singleview.json"
+    #custom_draw_geometry(pcd_final, mesh, filename)
+    load_view_point(pcd_final, filename)
+    synthesize_img_given_viewpoint(pcd_final, filename)
+
+#    o3d.visualization.draw_geometries([pcd_final, mesh],
+#                                        zoom=0.3412,
+#                                        front=[0.4257, -0.2125, -0.8795],
+#                                        lookat=[0.6172, 0.0475, 0.532],
+#                                        up=[-0.0694, -0.9768, 0.2024])    
+
+
     sys.exit()
 #    scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
 #    mkp3d, valid = interpolate_scan(scan_r, mkpr)
@@ -176,7 +188,8 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         mkpq, mkpr = kpq[v], kpr[m[v]]
         num_matches += len(mkpq)
 
-        #viz_entire_room_by_registering(dataset_dir, r)
+
+        viz_entire_room_by_registering(dataset_dir, r)
         scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
         # Note that width height of query different from reference
         #print(f"DEBUG 1:  width, height - {scan_r.shape, width, height}")
