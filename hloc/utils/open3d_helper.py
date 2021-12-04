@@ -1,6 +1,7 @@
 import numpy as np
 import open3d as o3d
 import json
+import sys
 
 import matplotlib.pyplot as plt
 
@@ -10,13 +11,16 @@ import torch.nn.functional as F
 import torch
 from torchvision.transforms import ToTensor
 
-def custom_draw_geometry(pcd1, pcd2, filename):
+def custom_draw_geometry(pcd, coord_mesh, filename, show_coord=True):
     # The following code achieves the same effect as:
     # o3d.visualization.draw_geometries([pcd])
     vis = o3d.visualization.Visualizer()
     vis.create_window()
-    vis.add_geometry(pcd1)
-    vis.add_geometry(pcd2)
+    vis.add_geometry(pcd)
+    #print(np.asarray(pcd.points)[:100])
+    #sys.exit()
+    if show_coord:
+        vis.add_geometry(coord_mesh)
     vis.run() # user changes the view and press "q" to terminate
     param = vis.get_view_control().convert_to_pinhole_camera_parameters()
     o3d.io.write_pinhole_camera_parameters(filename, param)
@@ -39,6 +43,7 @@ def load_view_point(pcd, filename):
     vis.create_window()
     ctr = vis.get_view_control()
     param = o3d.io.read_pinhole_camera_parameters(filename)
+    print(param.extrinsic)
     vis.add_geometry(pcd)
     ctr.convert_from_pinhole_camera_parameters(param)
     vis.run()
@@ -61,14 +66,18 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
 
     xyz = np.asarray(pcd.points)
 
-    # 1. OPENCV + from scratch method
-    rvecs = np.ones(3)
+#    print(f"xyz, extrinsics {xyz.shape}{extrinsics.shape}")
+#    xyz_T = np.matmul(extrinsics[0:3,0:3], xyz.T)
+#    xyz = xyz_T.T
+    rvecs = np.zeros(3)
     cv2.Rodrigues(extrinsics[0:3,0:3], rvecs)
+    tvecs = np.zeros(3)
     tvecs = extrinsics[0:3,3]
 
     dist = np.zeros(5)
     xy_imgcv, jac = cv2.projectPoints(xyz, rvecs, tvecs, K, dist)
     xy_imgcv = np.array(xy_imgcv.reshape(xy_imgcv.shape[0], 2), dtype=np.int_)
+    print(np.max(xy_imgcv), np.min(xy_imgcv), xy_imgcv)
 
 #    W_valid = (xy_imgcv[:,0] >= 0) &  (xy_imgcv[:,0] < W)
 #    H_valid = (xy_imgcv[:,1] >= 0) &  (xy_imgcv[:,1] < H)
@@ -83,19 +92,24 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
     pcd_colors = np.asarray(pcd.colors) * 255
 #    #print(pcd_colors.shape, pcd_colors[:10]*255)
 #
-    synth_img = np.zeros((H, W, 3)) 
+    synth_img = np.ones((H, W, 3))  * 255
 #    print(synth_img.shape)
 
 #    colors_re = pcd_colors.reshape((H,W,3))
 #    colors_re = colors_re.T
 #    pcd_colors = colors_re.reshape((H*W, 3))
-#    print(colors_re.shape, xy_imgcv.shape, synth_img.shape)
+    print(f"xy_imgcv.shape, synth_img.shape, pcd_colors.shape: {xy_imgcv.shape}, {synth_img.shape}, {pcd_colors.shape}")
     #synth_img(xy_imgcv[:]) 
+    total = 0
+    total_if = 0
     for i in range(pcd_colors.shape[0]):
+        total+=1
         if (xy_imgcv[i,0] >= 0) & (xy_imgcv[i,0] < H):
             if (xy_imgcv[i,1] >= 0) &  (xy_imgcv[i,1] < W):
                 #print(xy_imgcv[i], i)
-                synth_img[xy_imgcv[i,0], xy_imgcv[i,1]] = pcd_colors[i]
+                synth_img[H - 1 - xy_imgcv[i,0], W - 1 - xy_imgcv[i,1]] = pcd_colors[i]
+                total_if+=1
+    print(f"Total number of full pcd_colors iterations & if conditions pass: {total, total_if}")
 
 
     img = o3d.geometry.Image((synth_img).astype(np.uint8))

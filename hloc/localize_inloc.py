@@ -103,10 +103,11 @@ def viz_entire_room_file(dataset_dir, downsample=True):
 def viz_entire_room_by_registering(dataset_dir, r, downsample = False):
     # Load all the .jpg.mat files aka scan points of a particular room and visualize them
     room_path = (dataset_dir / "cutouts_imageonly/DUC1/024/") #024, 025, 005, 084, 010
-    mat_files = sorted(list(room_path.glob('*.jpg.mat')))
+    #mat_files = sorted(list(room_path.glob('*.jpg.mat')))
+    mat_files = [Path('/media/shubodh/DATA/OneDrive/rrc_projects/2021/github_general_projects/p3p_view-synthesis_inverse-warping/sample_data/inloc_data/cutouts_imageonly/DUC1/024/DUC_cutout_024_330_0.jpg.mat')]
+    #mat_files = [Path('datasets/inloc_small/cutouts_imageonly/DUC1/024/DUC_cutout_024_150_0.jpg.mat')]
 
-
-    mat_files_small = mat_files[:3] #6
+    mat_files_small = mat_files[:1] #6
 
     pcds = []
 
@@ -133,23 +134,20 @@ def viz_entire_room_by_registering(dataset_dir, r, downsample = False):
     
 
     # Downsampling for quicker visualization. Not needed if less pcds.
-    print(f"len(pcd.points): {len(pcd_final.points)}")
+    #print(f"len(pcd.points): {len(pcd_final.points)}")
     if downsample == True:
-        pcd_final = pcd_final.voxel_down_sample(voxel_size=0.01)  
+        print(f"Before downsampling: {len(pcd_final.points)}")
+        pcd_final = pcd_final.voxel_down_sample(voxel_size=0.01) #0.01
         print(f"After downsampling: {len(pcd_final.points)}")
 
-    mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
+    coord_mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
+    coord_pcd =  coord_mesh.sample_points_uniformly(number_of_points=500)
     #print(mesh.get_center())
-    filename = "graphVPR/ideas_SG/place-graphVPR/rand_json/viewpoint_1_singleview.json"
-    #custom_draw_geometry(pcd_final, mesh, filename)
+    filename = "graphVPR/ideas_SG/place-graphVPR/rand_json/viewpoint_1.json"
+    #custom_draw_geometry(pcd_final, coord_mesh, filename, show_coord=True)
     load_view_point(pcd_final, filename)
-    synthesize_img_given_viewpoint(pcd_final, filename)
+    #synthesize_img_given_viewpoint(pcd_final, filename)
 
-#    o3d.visualization.draw_geometries([pcd_final, mesh],
-#                                        zoom=0.3412,
-#                                        front=[0.4257, -0.2125, -0.8795],
-#                                        lookat=[0.6172, 0.0475, 0.532],
-#                                        up=[-0.0694, -0.9768, 0.2024])    
 
 
     sys.exit()
@@ -405,7 +403,7 @@ def main(dataset_dir, retrieval, features, matches, results,
         'retrieval': retrieval,
         'loc': {},
     }
-    #logging.info('Starting localization...')
+    logging.info('Starting localization...')
     for q in tqdm(queries):
         db = retrieval_dict[q]
         ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster(
