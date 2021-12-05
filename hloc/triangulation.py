@@ -15,10 +15,16 @@ from .utils.database import COLMAPDatabase
 from .utils.parsers import names_to_pair
 
 
+# TODO: consider creating a Colmap object that holds the path and verbose flag
+def run_command(cmd, verbose=False):
+    stdout = None if verbose else subprocess.DEVNULL
+    subprocess.run(cmd, check=True, stderr=subprocess.STDOUT, stdout=stdout)
+
+
 def create_empty_model(reference_model, empty_model):
     logging.info('Creating an empty model.')
     empty_model.mkdir(exist_ok=True)
-    shutil.copy(reference_model / 'cameras.bin', empty_model)
+    shutil.copyfile(reference_model/'cameras.bin', empty_model/'cameras.bin')
     write_points3D_binary(dict(), empty_model / 'points3D.bin')
     images = read_images_binary(str(reference_model / 'images.bin'))
     images_empty = dict()
@@ -30,7 +36,8 @@ def create_empty_model(reference_model, empty_model):
 
 def create_db_from_model(empty_model, database_path):
     if database_path.exists():
-        logging.warning('Database already exists.')
+        logging.warning('The database already exists, deleting it.')
+        database_path.unlink()
 
     cameras = read_cameras_binary(str(empty_model / 'cameras.bin'))
     images = read_images_binary(str(empty_model / 'images.bin'))
@@ -107,23 +114,22 @@ def import_matches(image_ids, database_path, pairs_path, matches_path,
     db.close()
 
 
-def geometric_verification(colmap_path, database_path, pairs_path):
+def geometric_verification(colmap_path, database_path, pairs_path, verbose):
     logging.info('Performing geometric verification of the matches...')
     cmd = [
         str(colmap_path), 'matches_importer',
         '--database_path', str(database_path),
         '--match_list_path', str(pairs_path),
         '--match_type', 'pairs',
+        '--SiftMatching.use_gpu', '0',
         '--SiftMatching.max_num_trials', str(20000),
         '--SiftMatching.min_inlier_ratio', str(0.1)]
-    subprocess.run(cmd, check=True)
+    run_command(cmd, verbose)
 
 
 def run_triangulation(colmap_path, model_path, database_path, image_dir,
-                      empty_model):
-    logging.info('Running the triangulation...')
-    assert model_path.exists()
-
+                      empty_model, verbose):
+    model_path.mkdir(parents=True, exist_ok=True)
     cmd = [
         str(colmap_path), 'point_triangulator',
         '--database_path', str(database_path),
@@ -133,8 +139,8 @@ def run_triangulation(colmap_path, model_path, database_path, image_dir,
         '--Mapper.ba_refine_focal_length', '0',
         '--Mapper.ba_refine_principal_point', '0',
         '--Mapper.ba_refine_extra_params', '0']
-    logging.info(' '.join(cmd))
-    subprocess.run(cmd, check=True)
+    logging.info('Running the triangulation with command:\n%s', ' '.join(cmd))
+    run_command(cmd, verbose)
 
     stats_raw = subprocess.check_output(
         [str(colmap_path), 'model_analyzer', '--path', str(model_path)])
@@ -159,7 +165,7 @@ def run_triangulation(colmap_path, model_path, database_path, image_dir,
 
 def main(sfm_dir, reference_sfm_model, image_dir, pairs, features, matches,
          colmap_path='colmap', skip_geometric_verification=False,
-         min_match_score=None):
+         min_match_score=None, verbose=False):
 
     assert reference_sfm_model.exists(), reference_sfm_model
     assert features.exists(), features
@@ -176,11 +182,12 @@ def main(sfm_dir, reference_sfm_model, image_dir, pairs, features, matches,
     import_matches(image_ids, database, pairs, matches,
                    min_match_score, skip_geometric_verification)
     if not skip_geometric_verification:
-        geometric_verification(colmap_path, database, pairs)
+        geometric_verification(colmap_path, database, pairs, verbose)
     stats = run_triangulation(
-        colmap_path, sfm_dir, database, image_dir, empty_model)
+        colmap_path, sfm_dir, database, image_dir, empty_model, verbose)
 
-    logging.info(f'Statistics:\n{pprint.pformat(stats)}')
+    logging.info('Finished the triangulation with statistics:\n%s',
+                 pprint.pformat(stats))
     shutil.rmtree(empty_model)
 
 
@@ -198,6 +205,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--skip_geometric_verification', action='store_true')
     parser.add_argument('--min_match_score', type=float)
+    parser.add_argument('--verbose', action='store_true')
     args = parser.parse_args()
 
     main(**args.__dict__)
