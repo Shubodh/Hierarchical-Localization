@@ -20,6 +20,9 @@ import json
 from .utils.parsers import parse_retrieval, names_to_pair
 from .utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint
 
+# above gives: ImportError: attempted relative import with no known parent package
+#from utils.parsers import parse_retrieval, names_to_pair
+#from utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint
 
 def interpolate_scan(scan, kp):
     h, w, c = scan.shape
@@ -100,19 +103,20 @@ def viz_entire_room_file(dataset_dir, downsample=True):
     o3d.visualization.draw_geometries([pcd_final, mesh])
     
 
-def viz_entire_room_by_registering(dataset_dir, r, downsample = False):
+def viz_entire_room_by_registering(dataset_dir, r, p3p_pose = None, downsample = False):
     # Load all the .jpg.mat files aka scan points of a particular room and visualize them
     room_path = (dataset_dir / "cutouts_imageonly/DUC1/024/") #024, 025, 005, 084, 010
-    #mat_files = sorted(list(room_path.glob('*.jpg.mat')))
-    mat_files = [Path('/media/shubodh/DATA/OneDrive/rrc_projects/2021/github_general_projects/p3p_view-synthesis_inverse-warping/sample_data/inloc_data/cutouts_imageonly/DUC1/024/DUC_cutout_024_330_0.jpg.mat')]
-    #mat_files = [Path('datasets/inloc_small/cutouts_imageonly/DUC1/024/DUC_cutout_024_150_0.jpg.mat')]
+    mat_files = sorted(list(room_path.glob('*.jpg.mat')))
+    #mat_files = [Path('/media/shubodh/DATA/OneDrive/rrc_projects/2021/github_general_projects/p3p_view-synthesis_inverse-warping/sample_data/inloc_data/cutouts_imageonly/DUC1/024/DUC_cutout_024_330_0.jpg.mat')]
+    #mat_files = [dataset_dir / "cutouts_imageonly/DUC1/005/DUC_cutout_005_0_0.jpg.mat"]
 
-    mat_files_small = mat_files[:1] #6
+    mat_files_small = mat_files[:1]#6
 
     pcds = []
 
     for mat_file in mat_files_small:
         print(mat_file)
+        #print(loadmat(Path(mat_file)))
 
         xyz_file  = loadmat(Path(mat_file))["XYZcut"]
         rgb_file = loadmat(Path(mat_file))["RGBcut"]
@@ -121,6 +125,8 @@ def viz_entire_room_by_registering(dataset_dir, r, downsample = False):
 
         xyz_file = (xyz_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
         rgb_file = (rgb_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
+        #xyz_file = (np.swapaxes(xyz_file,0,1).reshape((xyz_sp[0]*xyz_sp[1] ,3)))
+        #rgb_file = (np.swapaxes(rgb_file,0,1).reshape((xyz_sp[0]*xyz_sp[1] ,3)))
 
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(xyz_file)
@@ -134,19 +140,33 @@ def viz_entire_room_by_registering(dataset_dir, r, downsample = False):
     
 
     # Downsampling for quicker visualization. Not needed if less pcds.
-    #print(f"len(pcd.points): {len(pcd_final.points)}")
+    print(f"len(pcd.points): {len(pcd_final.points)}")
     if downsample == True:
         print(f"Before downsampling: {len(pcd_final.points)}")
-        pcd_final = pcd_final.voxel_down_sample(voxel_size=0.01) #0.01
+        pcd_final = pcd_final.voxel_down_sample(voxel_size=0.002) #0.01
         print(f"After downsampling: {len(pcd_final.points)}")
 
     coord_mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
     coord_pcd =  coord_mesh.sample_points_uniformly(number_of_points=500)
     #print(mesh.get_center())
-    filename = "graphVPR/ideas_SG/place-graphVPR/rand_json/viewpoint_1.json"
+    base_path = "/home/shubodh/hdd1/Shubodh/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/"
+    if p3p_pose is None:
+        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/T-inv.json"
+    else:
+        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/005_0.json"
+  
+        vpt_json = json.load(open(filename))
+        vpt_json['extrinsic'] = p3p_pose['extrinsic']
+        vpt_json['intrinsic']['intrinsic_matrix'] = p3p_pose['intrinsic']['intrinsic_matrix']
+        json_object = json.dumps(vpt_json, indent = 4)
+        with open(filename, "w") as p3p_pose_file:
+            p3p_pose_file.write(json_object)
+        #with open(filename, "w") as p3p_pose_file:
+        #    json.dump(vpt_json, p3p_pose_file)
+    
     #custom_draw_geometry(pcd_final, coord_mesh, filename, show_coord=True)
     load_view_point(pcd_final, filename)
-    #synthesize_img_given_viewpoint(pcd_final, filename)
+    synthesize_img_given_viewpoint(pcd_final, filename)
 
 
 

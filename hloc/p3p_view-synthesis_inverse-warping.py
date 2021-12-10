@@ -5,8 +5,11 @@ import cv2
 import pycolmap
 from scipy.io import loadmat
 from scipy.spatial.transform import Rotation as R, rotation
+import numpy as np
 
-from utils.interpolate import interpolate_scan
+import json
+
+from localize_inloc import interpolate_scan, viz_entire_room_by_registering
 from utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint
 
 def pose_from_2d3dpair_habitat():
@@ -40,18 +43,43 @@ def main(dataset_dir, features, img_path, skip_matches=None):
     img_path_str = str(img_path)
     ret, kpq, kp3d = pose_from_2d3dpair_inloc(dataset_dir, img_path_str, feature_file, skip_matches)
 
+    rot_matrix = R.from_quat(ret['qvec']).as_matrix()
     print(f"tvec, qvec: {ret['tvec'], ret['qvec']}")
-    rotation_matrix = R.from_quat(ret['qvec']).as_matrix()
-    print(rotation_matrix)
+    print(f"rot-matrix: {rot_matrix}")
+    extrinsic_matrix = np.hstack((rot_matrix, ret['tvec'].reshape((3,1))))
+    extrinsic_matrix = np.vstack((extrinsic_matrix, np.array([[0,0,0,1]])))
+    extrinsic_matrix_col_major = list(extrinsic_matrix.T.reshape((16)))
+
+    intrinsic_matrix_1 = list([ #possibly incorrect! TODO: Check, this seems to be from viz window.
+        617.47611289830479,
+        0.0,
+        0.0,
+        0.0,
+        617.47611289830479,
+        0.0,
+        682.5,
+        356.0,
+        1.0
+    ])
+    print(f"MATRICES: exitrinsic: {extrinsic_matrix}")
+    print(f"FLAT: extrinsic, intrinsic: {extrinsic_matrix_col_major} {intrinsic_matrix_1}")
+
+
+    p3p_pose = {"extrinsic": list(extrinsic_matrix_col_major), "intrinsic": {"intrinsic_matrix": intrinsic_matrix_1}}
+
+    full_path = "/home/shubodh/hdd1/Shubodh/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/graphVPR/ideas_SG/place-graphVPR/rand_json/"
+    #with open(full_path + "p3p_pose.json", "w") as p3p_pose_file:
+    #    json.dump(p3p_pose, p3p_pose_file)
+
+    viz_entire_room_by_registering(dataset_dir, r=None, p3p_pose=p3p_pose)
 
 
 if __name__ == '__main__':
     # Example arguments:
     # --dataset_dir sample_data/inloc_data/ # This would be path of where `cutouts_imageonly` resides. 
-    # --img_path cutouts_imageonly/DUC1/024/DUC_cutout_024_330_0.jpg
+    # --img_path cutouts_imageonly/DUC1/024/DUC_cutout_024_300_0.jpg
     # --features sample_data/inloc_data/feats-superpoint-n4096-r1600.h5
     # --skip_matches 20
-    # --results outputs/inloc_small/InLoc_hloc_superpoint+superglue_netvlad40.txt
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_dir', type=Path, required=True)
     parser.add_argument('--features', type=Path, required=True)
