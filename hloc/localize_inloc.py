@@ -17,12 +17,12 @@ from scipy.spatial.transform import Rotation as R
 import json
 
 
-from .utils.parsers import parse_retrieval, names_to_pair
-from .utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint
+#from .utils.parsers import parse_retrieval, names_to_pair
+#from .utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint
 
 # above gives: ImportError: attempted relative import with no known parent package
-#from utils.parsers import parse_retrieval, names_to_pair
-#from utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint
+from utils.parsers import parse_retrieval, names_to_pair
+from utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint
 
 def interpolate_scan(scan, kp):
     h, w, c = scan.shape
@@ -103,14 +103,21 @@ def viz_entire_room_file(dataset_dir, downsample=True):
     o3d.visualization.draw_geometries([pcd_final, mesh])
     
 
-def viz_entire_room_by_registering(dataset_dir, r, p3p_pose = None, downsample = False):
+def viz_entire_room_by_registering(dataset_dir, r, img_path = None, p3p_pose = None, downsample = False):
     # Load all the .jpg.mat files aka scan points of a particular room and visualize them
-    room_path = (dataset_dir / "cutouts_imageonly/DUC1/024/") #024, 025, 005, 084, 010
-    mat_files = sorted(list(room_path.glob('*.jpg.mat')))
+    if img_path is None:
+        room_no = "024"#024, 025, 005, 084, 010
+        room_path_str =str(dataset_dir) + "/" + "cutouts_imageonly/DUC1/" + room_no + "/"
+        room_path = Path(room_path_str)  
+        print(f"room_path: {room_path}")
+        mat_files = sorted(list(room_path.glob('*.jpg.mat')))
     #mat_files = [Path('/media/shubodh/DATA/OneDrive/rrc_projects/2021/github_general_projects/p3p_view-synthesis_inverse-warping/sample_data/inloc_data/cutouts_imageonly/DUC1/024/DUC_cutout_024_330_0.jpg.mat')]
-    #mat_files = [dataset_dir / "cutouts_imageonly/DUC1/005/DUC_cutout_005_0_0.jpg.mat"]
+    else:
+        str_path = str(dataset_dir) + "/" + str(img_path) + ".mat"
+        mat_files = [Path(str_path)]
+        print(mat_files)
 
-    mat_files_small = mat_files[:1]#6
+    mat_files_small = mat_files#[:6]#6
 
     pcds = []
 
@@ -125,8 +132,6 @@ def viz_entire_room_by_registering(dataset_dir, r, p3p_pose = None, downsample =
 
         xyz_file = (xyz_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
         rgb_file = (rgb_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
-        #xyz_file = (np.swapaxes(xyz_file,0,1).reshape((xyz_sp[0]*xyz_sp[1] ,3)))
-        #rgb_file = (np.swapaxes(rgb_file,0,1).reshape((xyz_sp[0]*xyz_sp[1] ,3)))
 
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(xyz_file)
@@ -151,13 +156,14 @@ def viz_entire_room_by_registering(dataset_dir, r, p3p_pose = None, downsample =
     #print(mesh.get_center())
     base_path = "/home/shubodh/hdd1/Shubodh/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/"
     if p3p_pose is None:
-        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/T-inv.json"
+        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/T_" + room_no + ".json"
     else:
-        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/005_0.json"
+        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/sample2.json"
   
         vpt_json = json.load(open(filename))
         vpt_json['extrinsic'] = p3p_pose['extrinsic']
         vpt_json['intrinsic']['intrinsic_matrix'] = p3p_pose['intrinsic']['intrinsic_matrix']
+        print(vpt_json)
         json_object = json.dumps(vpt_json, indent = 4)
         with open(filename, "w") as p3p_pose_file:
             p3p_pose_file.write(json_object)

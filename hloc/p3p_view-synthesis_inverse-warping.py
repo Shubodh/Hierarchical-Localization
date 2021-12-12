@@ -43,19 +43,50 @@ def main(dataset_dir, features, img_path, skip_matches=None):
     img_path_str = str(img_path)
     ret, kpq, kp3d = pose_from_2d3dpair_inloc(dataset_dir, img_path_str, feature_file, skip_matches)
 
-    rot_matrix = R.from_quat(ret['qvec']).as_matrix()
-    print(f"tvec, qvec: {ret['tvec'], ret['qvec']}")
+    ret_scipy_convention = ret['qvec']
+    ret_scipy_convention[0] = ret['qvec'][1]
+    ret_scipy_convention[1] = ret['qvec'][2]
+    ret_scipy_convention[2] = ret['qvec'][3]
+    ret_scipy_convention[3] = ret['qvec'][0]
+
+    rot_matrix = R.from_quat(ret_scipy_convention).as_matrix()
+    print(f"tvec, qvec: {ret['tvec'], ret_scipy_convention}")
     print(f"rot-matrix: {rot_matrix}")
     extrinsic_matrix = np.hstack((rot_matrix, ret['tvec'].reshape((3,1))))
     extrinsic_matrix = np.vstack((extrinsic_matrix, np.array([[0,0,0,1]])))
+
+
+    # Debug: Trying inverse matrix
+    #print(f"extrinsic_matrix before: {extrinsic_matrix}")
+    #R_T = extrinsic_matrix[0:3,0:3].T
+    #R_T_times_t = -extrinsic_matrix[0:3,0:3].T @ extrinsic_matrix[0:3,3]
+    #extrinsic_matrix[0:3,0:3] = R_T
+    ##extrinsic_matrix[0:3,3] = R_T_times_t
+    #print(f"extrinsic_matrix after: {extrinsic_matrix}")
+
+    
     extrinsic_matrix_col_major = list(extrinsic_matrix.T.reshape((16)))
 
+    H = 1200
+    W = 1600
+    cx = .5 * W 
+    cy = .5 * H
+    focal_length = 4032. * 28. / 36. 
+    focal_length_o3d = 617.47611289830479
+    cx_o3d = 682.5
+        #356.0,
+#    K[0][0], K[1][1] = focal_length, focal_length
+#    K[0][2] = cx
+#    K[1][2] = cy
+#    print("K after")
+
+
     intrinsic_matrix_1 = list([ #possibly incorrect! TODO: Check, this seems to be from viz window.
-        617.47611289830479,
+        focal_length,
         0.0,
         0.0,
         0.0,
-        617.47611289830479,
+        focal_length,
         0.0,
         682.5,
         356.0,
@@ -71,12 +102,12 @@ def main(dataset_dir, features, img_path, skip_matches=None):
     #with open(full_path + "p3p_pose.json", "w") as p3p_pose_file:
     #    json.dump(p3p_pose, p3p_pose_file)
 
-    viz_entire_room_by_registering(dataset_dir, r=None, p3p_pose=p3p_pose)
+    viz_entire_room_by_registering(dataset_dir, r=None, img_path=img_path, p3p_pose=p3p_pose)
 
 
 if __name__ == '__main__':
     # Example arguments:
-    # --dataset_dir sample_data/inloc_data/ # This would be path of where `cutouts_imageonly` resides. 
+    # --dataset_dir ../datasets/inloc_small/ # This would be path of where `cutouts_imageonly` resides. 
     # --img_path cutouts_imageonly/DUC1/024/DUC_cutout_024_300_0.jpg
     # --features sample_data/inloc_data/feats-superpoint-n4096-r1600.h5
     # --skip_matches 20

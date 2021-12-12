@@ -76,20 +76,23 @@ def load_view_point(pcd, filename):
     vis.destroy_window()
 
 def synthesize_img_given_viewpoint(pcd, viewpoint_json):
-    # IMP NOTE: CURRENT `pcd` is not yet FULL ROOM PCD, it's just first 5 depths merged...
-    # Step 1: From json file, load extrinsic tf and pre-multiply this with pcd
-    # Step 2: From json, load instrincic and ,,,,, with previous step output
-    # Just do both in 1 step finally
-    #load_view_point(pcd, viewpoint_json)
+    H = 1200
+    W = 1600
     vpt_json = json.load(open(viewpoint_json))
     extrinsics = np.array(vpt_json['extrinsic']).reshape(4,4).T
     K = np.array(vpt_json['intrinsic']['intrinsic_matrix']).reshape(3,3).T
-    print("extrinsics, K")
-    print(extrinsics, K)
+    print("K")
+    print(K)
+#    cx = .5 * W 
+#    cy = .5 * H
+#    focal_length = 4032. * 28. / 36.
+#    K[0][0], K[1][1] = focal_length, focal_length
+#    K[0][2] = cx
+#    K[1][2] = cy
+#    print("K after")
+#    print(K)
     #H = int(vpt_json['intrinsic']['height'])
     #W = int(vpt_json['intrinsic']['width'])
-    H = 1200
-    W = 1600
 
     xyz = np.asarray(pcd.points)
     
@@ -121,15 +124,12 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
     #print("2. X_L visualization")
     #viz_with_array_inp(xyz_hom1.T[:, :3],np.asarray(pcd.colors))
 
-    #tf_ex = np.array([[0,1,0],[0,0,-1],[-1,0,0]])
-    ###tf_ex = np.array([[0,0,-1],[1,0,0],[0,-1,0]])
-    ###tf_ex = np.array([[1,0,0],[0,-1,0],[0,0,-1]])
+    #tf_ex = np.array([[1,0,0],[0,-1,0],[0,0,-1]])
     #tf_ex_hom = np.vstack((tf_ex, np.zeros(tf_ex[0].shape)))
     #tf_ex_hom = np.hstack((tf_ex_hom, np.array([[0,0,0,1]]).T))
     #xyz_hom1 = np.matmul(tf_ex_hom, xyz_hom1)
     #print("3. X_L_corr visualization")
     #viz_with_array_inp(xyz_hom1.T[:, :3],np.asarray(pcd.colors))
-
 
     xy_img = np.matmul(K_hom, xyz_hom1)
     #print(np.nanmax(xy_img[0:2,:]), np.nanmin(xy_img[0:2,:]))
@@ -141,7 +141,6 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
 
     #xy_imgcv, jac = cv2.projectPoints(xyz, rvecs, tvecs, K, dist)
     #xy_imgcv = np.array(xy_imgcv.reshape(xy_imgcv.shape[0], 2), dtype=np.int_)
-    #xy_imgcv[1] *= -1
 
     #print(xy_imgcv.shape, xy_imgcv_n.shape)
     #print(np.max(xy_imgcv), np.min(xy_imgcv), xy_imgcv)
@@ -165,7 +164,7 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
 #    colors_re = pcd_colors.reshape((H,W,3))
 #    colors_re = colors_re.T
 #    pcd_colors = colors_re.reshape((H*W, 3))
-    print(f"xy_imgcv.shape, synth_img.shape, pcd_colors.shape: {xy_imgcv.shape}, {synth_img.shape}, {pcd_colors.shape}")
+    #print(f"xy_imgcv.shape, synth_img.shape, pcd_colors.shape: {xy_imgcv.shape}, {synth_img.shape}, {pcd_colors.shape}")
     #synth_img(xy_imgcv[:]) 
     for i in range(pcd_colors.shape[0]):
         # Be careful here: For xy_imgcv, (x,y) means x right first then y down.
