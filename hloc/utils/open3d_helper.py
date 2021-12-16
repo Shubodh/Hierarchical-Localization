@@ -59,20 +59,42 @@ def save_view_point(pcd, filename):
     vis.destroy_window()
 
 
-def load_view_point(pcd, filename):
+def load_view_point(pcd, filename, custom_inloc_viewer=False):
     vis = o3d.visualization.Visualizer()
-    vis.create_window()
-    ctr = vis.get_view_control()
-    param = o3d.io.read_pinhole_camera_parameters(filename)
-
-    #pcd_tf =  (param.extrinsic) @ pcd.points
 
 
+    if custom_inloc_viewer==True:
 
-    vis.add_geometry(pcd)
-    ctr.convert_from_pinhole_camera_parameters(param)
+        H = 1200
+        W = 1600
+        vis.create_window(width=W, height=H)
+
+        vpt_json = json.load(open(filename))
+        cx_old = vpt_json['intrinsic']['intrinsic_matrix'][6]
+        cy_old = vpt_json['intrinsic']['intrinsic_matrix'][7]
+        vpt_json['intrinsic']['intrinsic_matrix'][6] =  cx_old - 0.5
+        vpt_json['intrinsic']['intrinsic_matrix'][7] =  cy_old - 0.5
+        print("new camera params for o3d viz:")
+        print(vpt_json)
+        
+        json_object = json.dumps(vpt_json, indent = 4)
+        with open(filename + "_o3d.json", "w") as p3p_pose_file:
+            p3p_pose_file.write(json_object)
+        ctr = vis.get_view_control()
+        param = o3d.io.read_pinhole_camera_parameters(filename + "_o3d.json")
+        vis.add_geometry(pcd)
+        ctr.convert_from_pinhole_camera_parameters(param, True)
+    else:
+        vis.create_window()
+        ctr = vis.get_view_control()
+        param = o3d.io.read_pinhole_camera_parameters(filename)
+        vis.add_geometry(pcd)
+        ctr.convert_from_pinhole_camera_parameters(param)
+
     vis.run()
     vis.capture_screen_image(filename+".png")
+    #vis.capture_screen_image(filename+".png", do_render=True)
+    print(f"visualizer image saved at {filename}.png")
     vis.destroy_window()
 
 def synthesize_img_given_viewpoint(pcd, viewpoint_json):
@@ -169,10 +191,14 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
     for i in range(pcd_colors.shape[0]):
         # Be careful here: For xy_imgcv, (x,y) means x right first then y down.
         # Whereas for numpy array, (x, y) means x down first then y right.
-        if (xy_imgcv[i,0] >= 0) & (xy_imgcv[i,0] < W):
-            if (xy_imgcv[i,1] >= 0) &  (xy_imgcv[i,1] < H):
-                #print(xy_imgcv[i], i)
-                synth_img[xy_imgcv[i,1], xy_imgcv[i,0]] = pcd_colors[i] #
+
+        # 1. Ignore points with negative depth, i.e. ones behind the camera. 
+        if xyz_hom1[2,i] > 0: # Make sure the xyz you're checking are in ego frame
+            # 2. projected pixel must be between  [{0,W},{0,H}]
+            if (xy_imgcv[i,0] >= 0) & (xy_imgcv[i,0] < W):
+                if (xy_imgcv[i,1] >= 0) &  (xy_imgcv[i,1] < H):
+                    #print(xy_imgcv[i], i)
+                    synth_img[xy_imgcv[i,1], xy_imgcv[i,0]] = pcd_colors[i] #
 
 
     img = o3d.geometry.Image((synth_img).astype(np.uint8))

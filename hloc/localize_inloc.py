@@ -105,17 +105,23 @@ def viz_entire_room_file(dataset_dir, downsample=True):
 
 def viz_entire_room_by_registering(dataset_dir, r, img_path = None, p3p_pose = None, downsample = False):
     # Load all the .jpg.mat files aka scan points of a particular room and visualize them
+    room_no = "024"#024, 025, 005, 084, 010
     if img_path is None:
-        room_no = "024"#024, 025, 005, 084, 010
         room_path_str =str(dataset_dir) + "/" + "cutouts_imageonly/DUC1/" + room_no + "/"
         room_path = Path(room_path_str)  
         print(f"room_path: {room_path}")
         mat_files = sorted(list(room_path.glob('*.jpg.mat')))
     #mat_files = [Path('/media/shubodh/DATA/OneDrive/rrc_projects/2021/github_general_projects/p3p_view-synthesis_inverse-warping/sample_data/inloc_data/cutouts_imageonly/DUC1/024/DUC_cutout_024_330_0.jpg.mat')]
     else:
-        str_path = str(dataset_dir) + "/" + str(img_path) + ".mat"
-        mat_files = [Path(str_path)]
-        print(mat_files)
+        merge_all_room_pcd = True
+        if merge_all_room_pcd:
+            room_path_str =str(dataset_dir) + "/" + "cutouts_imageonly/DUC1/" + room_no + "/"
+            room_path = Path(room_path_str)  
+            print(f"room_path: {room_path}")
+            mat_files = sorted(list(room_path.glob('*.jpg.mat')))
+        else:
+            str_path = str(dataset_dir) + "/" + str(img_path) + ".mat"
+            mat_files = [Path(str_path)]
 
     mat_files_small = mat_files#[:6]#6
 
@@ -156,22 +162,21 @@ def viz_entire_room_by_registering(dataset_dir, r, img_path = None, p3p_pose = N
     #print(mesh.get_center())
     base_path = "/home/shubodh/hdd1/Shubodh/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/"
     if p3p_pose is None:
-        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/T_" + room_no + ".json"
+        #filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/T_" + room_no + "_l1_blue_issue.json"
+        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/" + room_no + "_T1.json"
+        #custom_draw_geometry(pcd_final, coord_mesh, filename, show_coord=True)
     else:
-        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/sample2.json"
+        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/p3p_" + room_no + ".json"
   
-        vpt_json = json.load(open(filename))
-        vpt_json['extrinsic'] = p3p_pose['extrinsic']
-        vpt_json['intrinsic']['intrinsic_matrix'] = p3p_pose['intrinsic']['intrinsic_matrix']
-        print(vpt_json)
-        json_object = json.dumps(vpt_json, indent = 4)
+        #vpt_json = json.load(open(filename))
+        #vpt_json['extrinsic'] = p3p_pose['extrinsic']
+        #vpt_json['intrinsic']['intrinsic_matrix'] = p3p_pose['intrinsic']['intrinsic_matrix']
+        #print(vpt_json)
+        json_object = json.dumps(p3p_pose, indent = 4)
         with open(filename, "w") as p3p_pose_file:
             p3p_pose_file.write(json_object)
-        #with open(filename, "w") as p3p_pose_file:
-        #    json.dump(vpt_json, p3p_pose_file)
     
-    #custom_draw_geometry(pcd_final, coord_mesh, filename, show_coord=True)
-    load_view_point(pcd_final, filename)
+    load_view_point(pcd_final, filename, custom_inloc_viewer=True)
     synthesize_img_given_viewpoint(pcd_final, filename)
 
 

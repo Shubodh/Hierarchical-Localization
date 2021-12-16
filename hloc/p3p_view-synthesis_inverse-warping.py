@@ -69,11 +69,14 @@ def main(dataset_dir, features, img_path, skip_matches=None):
 
     H = 1200
     W = 1600
-    cx = .5 * W 
-    cy = .5 * H
+    #cx = .5 * W 
+    #cy = .5 * H
+    cx = (.5 * W)# - 0.5
+    cy = (.5 * H)# - 0.5
     focal_length = 4032. * 28. / 36. 
     focal_length_o3d = 617.47611289830479
     cx_o3d = 682.5
+    cy_o3d = 356.0
         #356.0,
 #    K[0][0], K[1][1] = focal_length, focal_length
 #    K[0][2] = cx
@@ -81,22 +84,47 @@ def main(dataset_dir, features, img_path, skip_matches=None):
 #    print("K after")
 
 
-    intrinsic_matrix_1 = list([ #possibly incorrect! TODO: Check, this seems to be from viz window.
+    intrinsic_matrix_1 = list([ 
         focal_length,
         0.0,
         0.0,
         0.0,
         focal_length,
         0.0,
-        682.5,
-        356.0,
+        cx,
+        cy,
         1.0
     ])
+    intrinsic_matrix_o3d = list([ 
+        focal_length_o3d,
+        0.0,
+        0.0,
+        0.0,
+        focal_length_o3d,
+        0.0,
+        cx_o3d,
+        cy_o3d,
+        1.0
+    ])
+
+    o3d_params = False 
+    if o3d_params == True:
+        intrinsic_matrix_1 = intrinsic_matrix_o3d
+        H =713
+        W = 1366
     print(f"MATRICES: exitrinsic: {extrinsic_matrix}")
     print(f"FLAT: extrinsic, intrinsic: {extrinsic_matrix_col_major} {intrinsic_matrix_1}")
 
 
-    p3p_pose = {"extrinsic": list(extrinsic_matrix_col_major), "intrinsic": {"intrinsic_matrix": intrinsic_matrix_1}}
+    p3p_pose = {
+        "class_name": "PinholeCameraParameters",
+        "extrinsic": list(extrinsic_matrix_col_major), 
+        "intrinsic": {"height": H,
+                        "intrinsic_matrix": intrinsic_matrix_1,
+                        "width": W},
+        "version_major": 1,
+        "version_minor": 0
+    }
 
     full_path = "/home/shubodh/hdd1/Shubodh/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/graphVPR/ideas_SG/place-graphVPR/rand_json/"
     #with open(full_path + "p3p_pose.json", "w") as p3p_pose_file:
