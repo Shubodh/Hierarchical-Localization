@@ -201,6 +201,7 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
                     synth_img[xy_imgcv[i,1], xy_imgcv[i,0]] = pcd_colors[i] #
 
 
+
     img = o3d.geometry.Image((synth_img).astype(np.uint8))
     #o3d.visualization.draw_geometries([img])
     o3d.io.write_image(viewpoint_json + "synth.jpg", img)
