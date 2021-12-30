@@ -61,6 +61,7 @@ def save_view_point(pcd, filename):
 
 def load_view_point(pcd, filename, custom_inloc_viewer=False):
     vis = o3d.visualization.Visualizer()
+    # vis = o3d.visualization.O3DVisualizer()
 
 
     if custom_inloc_viewer==True:
@@ -84,6 +85,9 @@ def load_view_point(pcd, filename, custom_inloc_viewer=False):
         param = o3d.io.read_pinhole_camera_parameters(filename + "_o3d.json")
         vis.add_geometry(pcd)
         ctr.convert_from_pinhole_camera_parameters(param, True)
+        print(f"debug A:")
+        print(ctr.convert_to_pinhole_camera_parameters().intrinsic)
+        sys.exit()
     else:
         vis.create_window()
         ctr = vis.get_view_control()
@@ -92,10 +96,12 @@ def load_view_point(pcd, filename, custom_inloc_viewer=False):
         ctr.convert_from_pinhole_camera_parameters(param)
 
     vis.run()
+
     vis.capture_screen_image(filename+".png")
     #vis.capture_screen_image(filename+".png", do_render=True)
     print(f"visualizer image saved at {filename}.png")
     vis.destroy_window()
+
 
 def synthesize_img_given_viewpoint(pcd, viewpoint_json):
     H = 1200

@@ -17,8 +17,8 @@ from scipy.spatial.transform import Rotation as R
 import json
 
 
-#from .utils.parsers import parse_retrieval, names_to_pair
-#from .utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint
+# from .utils.parsers import parse_retrieval, names_to_pair
+# from .utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint
 
 # above gives: ImportError: attempted relative import with no known parent package
 from utils.parsers import parse_retrieval, names_to_pair
@@ -162,8 +162,8 @@ def viz_entire_room_by_registering(dataset_dir, r, img_path = None, p3p_pose = N
     #print(mesh.get_center())
     base_path = "/home/shubodh/hdd1/Shubodh/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/"
     if p3p_pose is None:
-        #filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/T_" + room_no + "_l1_blue_issue.json"
-        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/" + room_no + "_T1.json"
+        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/T_" + room_no + "_l1_blue_issue.json"
+        #filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/" + room_no + "_T1.json"
         #custom_draw_geometry(pcd_final, coord_mesh, filename, show_coord=True)
     else:
         filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/p3p_" + room_no + ".json"
@@ -177,7 +177,7 @@ def viz_entire_room_by_registering(dataset_dir, r, img_path = None, p3p_pose = N
             p3p_pose_file.write(json_object)
     
     load_view_point(pcd_final, filename, custom_inloc_viewer=True)
-    synthesize_img_given_viewpoint(pcd_final, filename)
+    #synthesize_img_given_viewpoint(pcd_final, filename)
 
 
 
