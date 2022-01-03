@@ -31,14 +31,23 @@ def pcd_from_depth(camera_params, rgb_path, depth_path):
 
 if __name__=='__main__':
     
-    input_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/seq01/seq01_01/"
-    #input_path = "/home/shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/seq01/seq01_01/"
+    seq_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/seq01/seq01_01/"
+    #seq_path = "/home/shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/seq01/seq01_01/"
 
-    frame_id = "frame-000016"
+    frame_id = "frame-004339" #000016, 003615
     rgb_ext = ".color.jpg"
     pose_ext = ".pose.txt"
     depth_ext = ".rendered.depth.png"
-    camera_params = yaml.load(open(input_path + "camera.yaml"), Loader=yaml.FullLoader)
+    camera_params = yaml.load(open(seq_path + "camera.yaml"), Loader=yaml.FullLoader)
 
-    pcd = pcd_from_depth(camera_params,
-                rgb_path = input_path + frame_id + rgb_ext, depth_path=input_path+frame_id+depth_ext)
+    # pcd = pcd_from_depth(camera_params,
+                # rgb_path = seq_path + frame_id + rgb_ext, depth_path=seq_path+frame_id+depth_ext)
+
+    models_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/models01/seq01_06/"
+    models_name = ['labels.ply', 'mesh.obj']
+
+    model_1 = o3d.io.read_triangle_mesh(models_path + models_name[1], True)
+    o3d.visualization.draw_geometries([model_1])
+
+    model_0 = o3d.io.read_point_cloud(models_path + models_name[0])
+    o3d.visualization.draw_geometries([model_0])
