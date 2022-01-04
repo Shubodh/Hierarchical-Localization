@@ -6,6 +6,8 @@ import cv2
 import sys
 import yaml
 
+from plyfile import PlyData, PlyElement
+
 def camera_intrinsics(camera_params):
         fx, fy, cx, cy  = camera_params['camera_intrinsics']['model']
         width, height = camera_params['camera_intrinsics']['width'], camera_params['camera_intrinsics']['height']
@@ -16,6 +18,10 @@ def camera_intrinsics(camera_params):
         return cam_int
 
 def pcd_from_depth(camera_params, rgb_path, depth_path):
+    # Calling the function as:
+    # pcd = pcd_from_depth(camera_params,
+                # rgb_path = seq_path + frame_id + rgb_ext, depth_path=seq_path+frame_id+depth_ext)
+
     color_raw = o3d.io.read_image(rgb_path)
     depth_raw = o3d.io.read_image(depth_path)
     #o3d.visualization.draw_geometries([depth_raw])
@@ -28,6 +34,23 @@ def pcd_from_depth(camera_params, rgb_path, depth_path):
     o3d.visualization.draw_geometries([pcd])
 
     return pcd
+
+def models_viz(path, names):
+    model_0 = o3d.io.read_triangle_mesh(path + names[0], True)
+    o3d.visualization.draw_geometries([model_0])
+
+    model_1 = o3d.io.read_triangle_mesh(path + names[1])
+    print(np.asarray(model_1.red))
+    o3d.visualization.draw_geometries([model_1])
+
+
+def ply_parser(name):
+    plydata = PlyData.read(name)
+    object_ids = (plydata.elements[0].data['objectId'])
+    object_set = set(object_ids) #len(object_set) = 40, thus, same as instances.txt
+    print(len(object_set))
+
+
 
 if __name__=='__main__':
     
@@ -43,11 +66,7 @@ if __name__=='__main__':
     # pcd = pcd_from_depth(camera_params,
                 # rgb_path = seq_path + frame_id + rgb_ext, depth_path=seq_path+frame_id+depth_ext)
 
-    models_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/models01/seq01_06/"
-    models_name = ['labels.ply', 'mesh.obj']
-
-    model_1 = o3d.io.read_triangle_mesh(models_path + models_name[1], True)
-    o3d.visualization.draw_geometries([model_1])
-
-    model_0 = o3d.io.read_point_cloud(models_path + models_name[0])
-    o3d.visualization.draw_geometries([model_0])
+    models_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/models01/seq01_02/"
+    models_name = ['mesh.obj', 'labels.ply']
+    #models_viz(models_path, models_name)
+    #ply_parser(models_path + models_name[1])
