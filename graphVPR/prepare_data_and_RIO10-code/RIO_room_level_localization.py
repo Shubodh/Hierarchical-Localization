@@ -18,9 +18,10 @@ def camera_intrinsics(camera_params):
         return cam_int
 
 def pcd_from_depth(camera_params, rgb_path, depth_path):
-    # Calling the function as:
-    # pcd = pcd_from_depth(camera_params,
-                # rgb_path = seq_path + frame_id + rgb_ext, depth_path=seq_path+frame_id+depth_ext)
+    ''' Usage:
+    pcd = pcd_from_depth(camera_params,
+                rgb_path = seq_path + frame_id + rgb_ext, depth_path=seq_path+frame_id+depth_ext)
+    '''
 
     color_raw = o3d.io.read_image(rgb_path)
     depth_raw = o3d.io.read_image(depth_path)
@@ -36,6 +37,9 @@ def pcd_from_depth(camera_params, rgb_path, depth_path):
     return pcd
 
 def models_viz(path, names):
+    ''' Usage:
+        models_viz(models_path, models_name)
+    '''
     model_0 = o3d.io.read_triangle_mesh(path + names[0], True)
     o3d.visualization.draw_geometries([model_0])
 
@@ -45,6 +49,9 @@ def models_viz(path, names):
 
 
 def ply_parser(name):
+    ''' Usage:
+        ply_parser(models_path + models_name[1])
+    '''
     plydata = PlyData.read(name)
     object_ids = (plydata.elements[0].data['objectId'])
     object_set = set(object_ids) #len(object_set) = 40, thus, same as instances.txt
@@ -53,20 +60,13 @@ def ply_parser(name):
 
 
 if __name__=='__main__':
-    
-    seq_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/seq01/seq01_01/"
-    #seq_path = "/home/shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/seq01/seq01_01/"
+    #seq_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/seq01/seq01_01/"
+    seq_path = "/home/shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/seq01/seq01_01/"
 
     frame_id = "frame-004339" #000016, 003615
-    rgb_ext = ".color.jpg"
-    pose_ext = ".pose.txt"
-    depth_ext = ".rendered.depth.png"
+    rgb_ext = ".color.jpg"; pose_ext = ".pose.txt";  depth_ext = ".rendered.depth.png"
     camera_params = yaml.load(open(seq_path + "camera.yaml"), Loader=yaml.FullLoader)
-
-    # pcd = pcd_from_depth(camera_params,
-                # rgb_path = seq_path + frame_id + rgb_ext, depth_path=seq_path+frame_id+depth_ext)
 
     models_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/models01/seq01_02/"
     models_name = ['mesh.obj', 'labels.ply']
-    #models_viz(models_path, models_name)
-    #ply_parser(models_path + models_name[1])
+    ply_parser(models_path + models_name[1])
