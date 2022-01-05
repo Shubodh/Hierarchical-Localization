@@ -7,15 +7,7 @@ import sys
 import yaml
 
 from plyfile import PlyData, PlyElement
-
-def camera_intrinsics(camera_params):
-        fx, fy, cx, cy  = camera_params['camera_intrinsics']['model']
-        width, height = camera_params['camera_intrinsics']['width'], camera_params['camera_intrinsics']['height']
-        cam_int = o3d.camera.PinholeCameraIntrinsic(width,height,fx,fy,cx,cy)
-        #print(width, height, fx, fy, cx, cy)
-        #print("Camera intrinsics matrix:")
-        #print(cam_int.intrinsic_matrix)
-        return cam_int
+from RIO_utils import camera_intrinsics
 
 def pcd_from_depth(camera_params, rgb_path, depth_path):
     ''' Usage:
@@ -38,19 +30,18 @@ def pcd_from_depth(camera_params, rgb_path, depth_path):
 
 def models_viz(path, names):
     ''' Usage:
-        models_viz(models_path, models_name)
+    models_viz(models_path, models_name)
     '''
     model_0 = o3d.io.read_triangle_mesh(path + names[0], True)
     o3d.visualization.draw_geometries([model_0])
 
     model_1 = o3d.io.read_triangle_mesh(path + names[1])
-    print(np.asarray(model_1.red))
     o3d.visualization.draw_geometries([model_1])
 
 
 def ply_parser(name):
     ''' Usage:
-        ply_parser(models_path + models_name[1])
+    ply_parser(models_path + models_name[1])
     '''
     plydata = PlyData.read(name)
     object_ids = (plydata.elements[0].data['objectId'])
@@ -60,13 +51,28 @@ def ply_parser(name):
 
 
 if __name__=='__main__':
-    #seq_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/seq01/seq01_01/"
-    seq_path = "/home/shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/seq01/seq01_01/"
+    base_simserver_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/"
+    base_shublocal_path = "/home/shubodh/Downloads/data-non-onedrive/RIO10_data/"
+    base_path = base_shublocal_path #base_simserver_path
 
+    # 1. Individual images: pcd_from_depth
+    seq_path = base_path + "scene01/seq01/seq01_01/"
     frame_id = "frame-004339" #000016, 003615
     rgb_ext = ".color.jpg"; pose_ext = ".pose.txt";  depth_ext = ".rendered.depth.png"
     camera_params = yaml.load(open(seq_path + "camera.yaml"), Loader=yaml.FullLoader)
 
-    models_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/scene01/models01/seq01_02/"
+    # 2. Room level Models: ply_parser, models_viz
+    models_path = base_path + "scene01/models01/seq01_01/" #seq01_02
     models_name = ['mesh.obj', 'labels.ply']
-    ply_parser(models_path + models_name[1])
+
+    # 3. Room level semantics -> instances.txt
+    #semantics_path = base_path + "scene01/semantics01/seq01_01/" #seq01_02
+    #instances_txt = semantics_path + "instances.txt"
+    #instances_img = semantics_path + "frame-000000.instances.png"
+
+    rescan_ids = ['01_01', '01_02', '02_01', '02_02']
+    print(rescan_ids[0][:2])
+    for i in range(len(rescan_ids)):
+        semantics_path= base_path+ "scene"+ rescan_ids[i][:2]+ "/semantics" +rescan_ids[i][:2]+"/seq"+ rescan_ids[i]+ "/" 
+        instances_txt = semantics_path + "instances.txt"
+        print(instances_txt)
