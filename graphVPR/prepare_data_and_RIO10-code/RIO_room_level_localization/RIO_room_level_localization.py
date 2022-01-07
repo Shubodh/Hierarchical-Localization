@@ -8,8 +8,8 @@ import yaml
 
 from plyfile import PlyData, PlyElement
 
-from utils import camera_intrinsics, extract_RIO_instance_file, semantics_dict_from_set,frequency_list_to_dict
-#from features import feat_vect
+from utils import camera_intrinsics
+from features import feat_vect
 #from matchers import 
 
 def pcd_from_depth(camera_params, rgb_path, depth_path):
@@ -79,6 +79,5 @@ if __name__=='__main__':
         semantics_path= Path(base_path+ "scene"+ rescan_ids[i][:2]+ "/semantics" +rescan_ids[i][:2]+"/seq"+ rescan_ids[i]+ "/")
         instances_txt = semantics_path / "instances.txt"
         instances_all.append(instances_txt)
-    dict_instances, oset_semantics, dict_semantics = extract_RIO_instance_file(instances_all[0])
-    print(oset_semantics,'\n', dict_instances,'\n', dict_semantics)
-    #print(len(set_semantics),'\n', len(dict_instances),'\n', len(dict_semantics))
+
+    featVect = feat_vect(instances_all)
