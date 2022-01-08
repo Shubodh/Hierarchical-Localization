@@ -9,8 +9,8 @@ import yaml
 from plyfile import PlyData, PlyElement
 
 from utils import camera_intrinsics
-from features import feat_vect
-#from matchers import 
+from features import feat_vect, verify_featVect
+from matching import getMatchInds, getMatchIndsTfidf, getMatchIndsBinary, getMatchIndsBinaryTfidf
 
 def pcd_from_depth(camera_params, rgb_path, depth_path):
     ''' Usage:
@@ -73,11 +73,18 @@ if __name__=='__main__':
     #instances_txt = semantics_path + "instances.txt"
     #instances_img = semantics_path + "frame-000000.instances.png"
 
-    rescan_ids = ['01_01', '01_02', '02_01', '02_02']
+    rescan_rooms_ids = ['01_01', '01_02', '02_01', '02_02']
     instances_all = []
-    for i in range(len(rescan_ids)):
-        semantics_path= Path(base_path+ "scene"+ rescan_ids[i][:2]+ "/semantics" +rescan_ids[i][:2]+"/seq"+ rescan_ids[i]+ "/")
+    for i in range(len(rescan_rooms_ids)):
+        semantics_path= Path(base_path+ "scene"+ rescan_rooms_ids[i][:2]+ 
+                        "/semantics" +rescan_rooms_ids[i][:2]+"/seq"+ rescan_rooms_ids[i]+ "/")
         instances_txt = semantics_path / "instances.txt"
         instances_all.append(instances_txt)
 
-    featVect = feat_vect(instances_all)
+    featVect, dict_semantics = feat_vect(instances_all) #dict_semantics for debugging
+    #verify_featVect(featVect, instances_all, dict_semantics, rescan_rooms_ids) #use this function to verify featVect
+
+    one, two, three, four = featVect[0], featVect[1], featVect[2], featVect[3]
+    mInds1 = getMatchInds(featVect, featVect, topK=2)
+    print(f"mInds: {mInds1}") # should be [0,1][1,0][2,3][3,2]
+    print(f"DONE FOR NOW: Getting 100% accuracy :)")

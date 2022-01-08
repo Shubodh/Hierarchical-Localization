@@ -42,11 +42,14 @@ def semantics_dict_from_set(set_semantics):
     return dict_semantics
 
 def extract_RIO_instance_file(instance_filename):
-    ''' extracting useful things like set_semantics(NOTE: returning it as an ordered list, not set()), dict_instances
-    from instance_filename.
+    ''' 
+    dict_instances: the txt file as it is. {'1': 'washing_basket', '2': 'bag', '3': 'bag',
+    '4': 'bag', ..39 items}
+
     Careful: RIO instance file is slightly different from Mp3d -->
     1. space between 2 word objects instead of _ (mp3d has _)
-    2. 1-indexing instead of 0 (mp3d has 0)'''
+    2. 1-indexing instead of 0 (mp3d has 0)
+    '''
 
     #set_semantics = set()  # not using set() as it doesn't preserve order.
     #  Using dict.fromkeys(list(dict_instances.values())) to replicate same behaviour. See below.
@@ -66,8 +69,25 @@ def extract_RIO_instance_file(instance_filename):
 
             l = l + 1
     
+    return dict_instances
 
-    oset_semantics = list(dict.fromkeys(list(dict_instances.values()))) # ordered set as list
+def merge_all_rooms_dicts(dict_instances_r):
+    '''
+    (NOTE: returning oset_semantics as an ordered list, not set())
+
+    BELOW 33 items is for 4 rooms ['01_01', '01_02', '02_01', '02_02']: 
+    oset_semantics: non redundant set of objects ['washing_basket', 'bag', 'box', 
+    'cupboard', 'object', .. 33 items] oset_semantics is a list but is named
+    as set to denote the non-redundancy. 
+    dict_semantics: unique id for every object {'washing_basket': 0, 'bag': 1, 'box': 2,.. 33 items}
+
+    '''
+
+    all_instances_list = []
+    for dict_instances in dict_instances_r:
+        all_instances_list.extend(list(dict_instances.values()))
+
+    oset_semantics = list(dict.fromkeys(all_instances_list)) # ordered set as list
     dict_semantics = semantics_dict_from_set(oset_semantics)
-
-    return dict_instances, oset_semantics, dict_semantics
+    #print(all_instances_list, "\n", oset_semantics,"\n", dict_semantics, "\n")
+    return oset_semantics, dict_semantics
