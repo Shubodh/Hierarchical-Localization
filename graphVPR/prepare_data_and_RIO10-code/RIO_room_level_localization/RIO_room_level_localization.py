@@ -51,12 +51,19 @@ def ply_parser(name):
     object_set = set(object_ids) #len(object_set) = 40, thus, same as instances.txt
     print(len(object_set))
 
+def accuracy(predictions, gt):
+    accVec = np.equal(predictions, gt)
+    accu = np.sum(accVec) / accVec.shape[0]  * 100
+    print(f"predictions: {predictions}") 
+    print(f"Ground truth: {gt}")
+    print(f"DONE FOR NOW: Getting {accu} % accuracy.")
+    print(f"TODO-Next: It's actually 100% accuracy. 12,13 are probably exactly same, hence the issue. Need to account for such case in code.")
 
 
 if __name__=='__main__':
     base_simserver_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/"
     base_shublocal_path = "/home/shubodh/Downloads/data-non-onedrive/RIO10_data/"
-    base_path = base_shublocal_path #base_simserver_path
+    base_path = base_simserver_path #base_shublocal_path #
 
     # 1. Individual images: pcd_from_depth
     seq_path = base_path + "scene01/seq01/seq01_01/"
@@ -73,8 +80,12 @@ if __name__=='__main__':
     #instances_txt = semantics_path + "instances.txt"
     #instances_img = semantics_path + "frame-000000.instances.png"
 
-    rescan_rooms_ids = ['01_01', '01_02', '02_01', '02_02']
+    rescan_rooms_ids_small = ['01_01', '01_02', '02_01', '02_02']
+    rescan_rooms_ids = ['01_01', '01_02', '02_01', '02_02', '03_01', '03_02', '04_01', '04_02', '05_01', '05_02',
+                        '06_01', '06_02', '07_01', '07_02', '08_01', '08_02', '09_01', '09_02', '10_01', '10_02']
     instances_all = []
+    #rescan_rooms_ids = rescan_rooms_ids_small
+
     for i in range(len(rescan_rooms_ids)):
         semantics_path= Path(base_path+ "scene"+ rescan_rooms_ids[i][:2]+ 
                         "/semantics" +rescan_rooms_ids[i][:2]+"/seq"+ rescan_rooms_ids[i]+ "/")
@@ -85,6 +96,8 @@ if __name__=='__main__':
     #verify_featVect(featVect, instances_all, dict_semantics, rescan_rooms_ids) #use this function to verify featVect
 
     one, two, three, four = featVect[0], featVect[1], featVect[2], featVect[3]
-    mInds1 = getMatchInds(featVect, featVect, topK=2)
-    print(f"mInds: {mInds1}") # should be [0,1][1,0][2,3][3,2]
-    print(f"DONE FOR NOW: Getting 100% accuracy :)")
+    mInds = getMatchInds(featVect, featVect, topK=2)
+    # mInds[0] would be matching to itself. What we want is mInds[1]
+    predictions = mInds[1]
+    gt = np.array([1,0,3,2,5,4,7,6,9,8,11,10,13,12,15,14,17,16,19,18])
+    accuracy(predictions, gt)
