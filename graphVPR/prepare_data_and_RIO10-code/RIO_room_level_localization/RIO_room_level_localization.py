@@ -63,7 +63,7 @@ def accuracy(predictions, gt):
 if __name__=='__main__':
     base_simserver_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/"
     base_shublocal_path = "/home/shubodh/Downloads/data-non-onedrive/RIO10_data/"
-    base_path = base_simserver_path #base_shublocal_path #
+    base_path = base_shublocal_path #base_simserver_path #
 
     # 1. Individual images: pcd_from_depth
     seq_path = base_path + "scene01/seq01/seq01_01/"
@@ -83,9 +83,13 @@ if __name__=='__main__':
     rescan_rooms_ids_small = ['01_01', '01_02', '02_01', '02_02']
     rescan_rooms_ids = ['01_01', '01_02', '02_01', '02_02', '03_01', '03_02', '04_01', '04_02', '05_01', '05_02',
                         '06_01', '06_02', '07_01', '07_02', '08_01', '08_02', '09_01', '09_02', '10_01', '10_02']
-    instances_all = []
-    #rescan_rooms_ids = rescan_rooms_ids_small
+    gt = np.array([1,0,3,2,5,4,7,6,9,8,11,10,13,12,15,14,17,16,19,18])
+    gt_small = np.array([1,0,3,2])
+    if base_path == base_shublocal_path:
+        rescan_rooms_ids = rescan_rooms_ids_small
+        gt = gt_small
 
+    instances_all = []
     for i in range(len(rescan_rooms_ids)):
         semantics_path= Path(base_path+ "scene"+ rescan_rooms_ids[i][:2]+ 
                         "/semantics" +rescan_rooms_ids[i][:2]+"/seq"+ rescan_rooms_ids[i]+ "/")
@@ -95,9 +99,8 @@ if __name__=='__main__':
     featVect, dict_semantics = feat_vect(instances_all) #dict_semantics for debugging
     #verify_featVect(featVect, instances_all, dict_semantics, rescan_rooms_ids) #use this function to verify featVect
 
-    one, two, three, four = featVect[0], featVect[1], featVect[2], featVect[3]
+    #one, two, three, four = featVect[0], featVect[1], featVect[2], featVect[3]
     mInds = getMatchInds(featVect, featVect, topK=2)
     # mInds[0] would be matching to itself. What we want is mInds[1]
     predictions = mInds[1]
-    gt = np.array([1,0,3,2,5,4,7,6,9,8,11,10,13,12,15,14,17,16,19,18])
     accuracy(predictions, gt)
