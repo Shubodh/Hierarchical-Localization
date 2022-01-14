@@ -36,6 +36,7 @@ def models_viz(path, names):
     models_viz(models_path, models_name)
     '''
     model_0 = o3d.io.read_triangle_mesh(path + names[0], True)
+    print(f"{names[0]} has vertices {np.asarray(model_0.vertices).shape} and triangles {np.asarray(model_0.triangles).shape} respectively.")
     o3d.visualization.draw_geometries([model_0])
 
     model_1 = o3d.io.read_triangle_mesh(path + names[1])
