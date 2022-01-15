@@ -64,7 +64,8 @@ def accuracy(predictions, gt):
 if __name__=='__main__':
     base_simserver_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/"
     base_shublocal_path = "/home/shubodh/Downloads/data-non-onedrive/RIO10_data/"
-    base_path = base_shublocal_path #base_simserver_path #
+    base_adaserver_path = "/data/RIO10_data/"
+    base_path =base_adaserver_path# base_shublocal_path #base_simserver_path #
 
     # 1. Individual images: pcd_from_depth
     seq_path = base_path + "scene01/seq01/seq01_01/"
