@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.autograd import Variable
 
 from netvlad import NetVLAD
@@ -70,32 +71,60 @@ def accuracy(predictions, gt):
     accu = np.sum(accVec) / accVec.shape[0]  * 100
     print(f"predictions: {predictions}") 
     print(f"Ground truth: {gt}")
-    print(f"DONE FOR NOW: Getting {accu} % accuracy.")
+    print(f"ACCURACY:  {accu} %. TODO-Later: Check your ground truth, may not be entirely right. i.e. mInds[1] could point to itself too. i.e. for 1, 0 or 1 could be considered as true... not sure, check later")
+
+def norm_topoNetVLAD(featVect, num_clusters,feat_dim):
+    # print("DEBUG")
+    # print(featVect)
+    for i in range(featVect.shape[0]):
+        vlad = featVect[i]
+        input_shape = vlad.shape
+        vlad = vlad.reshape((num_clusters,feat_dim))
+        vlad = F.normalize(vlad, p=2, dim=1)  # intra-normalization
+        vlad = vlad.view(-1)  # flatten
+        vlad = F.normalize(vlad, p=2, dim=0)  # L2 normalize
+        featVect[i] = vlad
+
+        output_shape = vlad.shape
+    # print(featVect)
+    # sys.exit()
+    return featVect
 
 @torch.no_grad()
-def topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, sample_path):
+def topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, num_clusters,feat_dim, sample_path, sampling_freq, batch_size, norm_bool):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     featVect_tor = torch.zeros((len(base_rooms), dim_descriptor_vlad)).cuda()
-    for i, base_room in enumerate(base_rooms):
+    for i_room, base_room in enumerate(base_rooms):
         if base_path == sample_path:
             full_path_str = base_path + base_room
         else:
             full_path_str= base_path+ "scene"+ base_room[:2]+"/seq" +base_room[:2]+"/seq"+ base_room+ "/"
         full_path = Path(full_path_str)
-        img_files = sorted(list(full_path.glob("*color.jpg")))
-        for img in img_files:
+        img_files_all = sorted(list(full_path.glob("*color.jpg")))
+        img_files = img_files_all[::sampling_freq] # every 1000th image
+        print(f"No. of sampling images in this {base_room} room: {len(img_files)}")
+        #print(f" and their names: {img_files}")
+        x_all = []
+        for i_img, img in enumerate(img_files):
             rgb = read_image(img)
-            #rgb = rgb.astype(np.float32)
-            #rgb= cv2.imread(str(img), cv2.IMREAD_COLOR)
+            rgb = rgb.astype(np.float32)
             rgb_np = np.moveaxis(np.array(rgb), -1, 0)
             rgb_np = rgb_np[np.newaxis, :]
             x = torch.from_numpy(rgb_np).float().cuda()
-            output = model(x) #batch_size = 1 currently, TODO: increase batch_size and change following code accordingly.
-            featVect_tor[i] = featVect_tor[i] + output
-            #print(img)
-            #print("CURRENTLY HERE. NOw only sampling of images remaining")
-        #sys.exit()
+            x_all.append(x)
+            if (i_img+1) % batch_size == 0:
+                #x_all_batch = torch.cat(x_all[i_img+1 - batch_size:i_img+1], 0) # if x_all=[] is commented
+                x_all_batch = torch.cat(x_all, 0) # if below x_all=[] is uncommented
+                output = model(x_all_batch) 
+                featVect_tor[i_room] = featVect_tor[i_room] + torch.sum(output, 0)
+                x_all = []
+        #print("CURRENTLY HERE. NOw only sampling of images remaining")
+    if norm_bool == True:
+        torch.set_printoptions(profile="full")
+        print(f"Before norm: {featVect_tor[0:3,:20]}")
+        featVect_tor = norm_topoNetVLAD(featVect_tor, num_clusters,feat_dim)
+        print(f"After norm: {featVect_tor[0:3,:20]}")
     featVect = featVect_tor.cpu().detach().numpy()
     return featVect
 
@@ -106,6 +135,8 @@ if __name__=='__main__':
     dim_descriptor_vlad = (dim_ind*num_clusters)
 
     sample_path = "./sample_graphVPR_data/"
+    # Note: Use sampling_freq=1 for 100% accuracy on sample_path. Do note that this doesn't seem deterministic
+    # so don't always expect 100%.
     base_shublocal_path = "/home/shubodh/Downloads/data-non-onedrive/RIO10_data/"
     base_simserver_path = "/home/shubodh/hdd1/Shubodh/Downloads/data-non-onedrive/RIO10_data/"
     base_adaserver_path = "/data/RIO10_data/"
@@ -118,7 +149,10 @@ if __name__=='__main__':
     gt_small = np.array([1,0,3,2])
 
     # 2. TO SET: Set just the next line
-    base_path =sample_path #base_shublocal_path # base_shublocal_path #base_simserver_path
+    base_path =base_adaserver_path #sample_path  # base_shublocal_path #base_simserver_path
+    sampling_freq = 100# 1 #1
+    batch_size = 8 #3 for sample_path, 32 for all else
+    norm_bool = True 
 
     # 3. Code starts
     if base_path == sample_path:
@@ -127,10 +161,12 @@ if __name__=='__main__':
     elif base_path == base_shublocal_path:
         base_rooms=rescan_rooms_ids_small
         gt = gt_small
-    elif base_path == base_simserver_path:
+    else:
         base_rooms = rescan_rooms_ids
 
-    featVect = topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, sample_path)
+    featVect = topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, num_clusters,dim_ind,
+                        sample_path, sampling_freq, batch_size, norm_bool)
     mInds = getMatchInds(featVect, featVect, topK=2)
     predictions = mInds[1]
     accuracy(predictions, gt)
+    print(f"Do note that this accuracy is for sampling_freq {sampling_freq}, batch_size {batch_size}, norm {norm_bool}")
