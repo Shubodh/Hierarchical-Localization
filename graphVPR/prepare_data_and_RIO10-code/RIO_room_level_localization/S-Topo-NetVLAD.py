@@ -17,18 +17,8 @@ from pathlib import Path
 import sys
 
 from utils import read_image
+from matching import getMatchInds, getMatchIndsTfidf, getMatchIndsBinary, getMatchIndsBinaryTfidf
 
-def getMatchInds(ft_ref,ft_qry,topK=1,metric='cosine'):
-    """
-    This function takes two matrics and computes the distance between every vector in the matrices.
-    For every query vector a ref. vector having shortest distance is retured
-    """
-    """
-    metric: 'euclidean' or 'cosine' or 'correlation'
-    """
-    dMat = cdist(ft_ref,ft_qry,metric)
-    mInds = np.argsort(dMat,axis=0)[:topK]        # shape: K x ft_qry.shape[0]
-    return mInds
 
 def netvlad_model(num_clusters=32):
     # Discard layers at the end of base network
@@ -85,7 +75,15 @@ def norm_topoNetVLAD(featVect, num_clusters,feat_dim):
         vlad = F.normalize(vlad, p=2, dim=0)  # L2 normalize
         featVect[i] = vlad
 
-        output_shape = vlad.shape
+    # print(featVect)
+    # sys.exit()
+    return featVect
+
+def average_topoNetVLAD(featVect, num_images_per_room, num_clusters, feat_dim):
+    # print("DEBUG")
+    # print(featVect)
+    for i in range(featVect.shape[0]):
+        featVect[i] = featVect[i] / num_images_per_room[i]
     # print(featVect)
     # sys.exit()
     return featVect
@@ -95,6 +93,7 @@ def topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, num_clusters,feat_di
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     featVect_tor = torch.zeros((len(base_rooms), dim_descriptor_vlad)).cuda()
+    num_images_per_room = []
     for i_room, base_room in enumerate(base_rooms):
         if base_path == sample_path:
             full_path_str = base_path + base_room
@@ -104,6 +103,7 @@ def topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, num_clusters,feat_di
         img_files_all = sorted(list(full_path.glob("*color.jpg")))
         img_files = img_files_all[::sampling_freq] # every 1000th image
         print(f"No. of sampling images in this {base_room} room: {len(img_files)}")
+        num_images_per_room.append(len(img_files))
         #print(f" and their names: {img_files}")
         x_all = []
         for i_img, img in enumerate(img_files):
@@ -120,11 +120,13 @@ def topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, num_clusters,feat_di
                 featVect_tor[i_room] = featVect_tor[i_room] + torch.sum(output, 0)
                 x_all = []
         #print("CURRENTLY HERE. NOw only sampling of images remaining")
-    if norm_bool == True:
+    if norm_bool:
         torch.set_printoptions(profile="full")
-        print(f"Before norm: {featVect_tor[0:3,:20]}")
-        featVect_tor = norm_topoNetVLAD(featVect_tor, num_clusters,feat_dim)
-        print(f"After norm: {featVect_tor[0:3,:20]}")
+        #print(f"Before norm: {featVect_tor[0:3,:20]}")
+        #featVect_tor = norm_topoNetVLAD(featVect_tor, num_clusters,feat_dim)
+        print("doing average topoNetVLAD")
+        featVect_tor = average_topoNetVLAD(featVect_tor, num_images_per_room, num_clusters,feat_dim)
+        #print(f"After norm: {featVect_tor[0:3,:20]}")
     featVect = featVect_tor.cpu().detach().numpy()
     return featVect
 
@@ -150,9 +152,10 @@ if __name__=='__main__':
 
     # 2. TO SET: Set just the next line
     base_path =base_adaserver_path #sample_path  # base_shublocal_path #base_simserver_path
-    sampling_freq = 100# 1 #1
+    sampling_freq = 25# 1 #1
     batch_size = 8 #3 for sample_path, 32 for all else
     norm_bool = True 
+    tf_idf = True
 
     # 3. Code starts
     if base_path == sample_path:
@@ -166,7 +169,12 @@ if __name__=='__main__':
 
     featVect = topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, num_clusters,dim_ind,
                         sample_path, sampling_freq, batch_size, norm_bool)
-    mInds = getMatchInds(featVect, featVect, topK=2)
+    if tf_idf:
+        mInds = getMatchIndsTfidf(featVect, featVect, topK=2)
+    else:
+        mInds = getMatchInds(featVect, featVect, topK=2)
+
     predictions = mInds[1]
     accuracy(predictions, gt)
-    print(f"Do note that this accuracy is for sampling_freq {sampling_freq}, batch_size {batch_size}, norm {norm_bool}")
+    print(f"mInds[0] sanity check {mInds[0]}")
+    print(f"Do note that this accuracy is for sampling_freq {sampling_freq}, batch_size {batch_size}, norm {norm_bool}, tf-idf {tf_idf}")
