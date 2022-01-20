@@ -21,6 +21,7 @@ from matching import getMatchInds, getMatchIndsTfidf, getMatchIndsBinary, getMat
 
 
 def netvlad_model(num_clusters=32):
+    # lyakaap's code: https://github.com/Shubodh/NetVLAD-pytorch
     # Discard layers at the end of base network
     encoder = resnet18(pretrained=True)
     #print(encoder)
