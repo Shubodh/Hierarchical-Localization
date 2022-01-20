@@ -89,7 +89,7 @@ def average_topoNetVLAD(featVect, num_images_per_room, num_clusters, feat_dim):
     return featVect
 
 @torch.no_grad()
-def topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, num_clusters,feat_dim, sample_path, sampling_freq, batch_size, norm_bool):
+def topoNetVLAD(model, base_path, base_rooms, dim_descriptor_vlad, num_clusters,feat_dim, sample_path, sampling_freq, batch_size, norm_bool):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     featVect_tor = torch.zeros((len(base_rooms), dim_descriptor_vlad)).cuda()
@@ -134,6 +134,7 @@ if __name__=='__main__':
     # 1. Given manual info
     num_clusters=32
     model, dim_ind = netvlad_model(num_clusters)
+    #model, dim_ind = netvlad_pretrainedmodel(num_clusters) #TODO-Jiv: https://github.com/Nanne/pytorch-NetVlad
     dim_descriptor_vlad = (dim_ind*num_clusters)
 
     sample_path = "./sample_graphVPR_data/"
@@ -167,7 +168,7 @@ if __name__=='__main__':
     else:
         base_rooms = rescan_rooms_ids
 
-    featVect = topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, num_clusters,dim_ind,
+    featVect = topoNetVLAD(model, base_path, base_rooms, dim_descriptor_vlad, num_clusters,dim_ind,
                         sample_path, sampling_freq, batch_size, norm_bool)
     if tf_idf:
         mInds = getMatchIndsTfidf(featVect, featVect, topK=2)
