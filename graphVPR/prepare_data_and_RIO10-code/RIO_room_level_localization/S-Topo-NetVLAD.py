@@ -119,7 +119,7 @@ def topoNetVLAD(model, base_path, base_rooms, dim_descriptor_vlad, num_clusters,
                 x_all_batch = torch.cat(x_all, 0).to(device) # if below x_all=[] is uncommented
                 output = model.encoder(x_all_batch)
                 output = model.pool(output)
-                print('OUTPUT SHAPE', output.size(), flush=True)
+                # print('OUTPUT SHAPE', output.size(), flush=True)
                 featVect_tor[i_room] = featVect_tor[i_room] + torch.sum(output, 0)
                 x_all = []
         #print("CURRENTLY HERE. NOw only sampling of images remaining")
@@ -135,7 +135,7 @@ def topoNetVLAD(model, base_path, base_rooms, dim_descriptor_vlad, num_clusters,
 
 if __name__=='__main__':
     # 1. Given manual info
-    checkpoint_path = ''
+    checkpoint_path = '/home/saishubodh/rrc_projects_2021/graphVPR_project/Hierarchical-Localization/graphVPR/prepare_data_and_RIO10-code/RIO_room_level_localization/netvlad_checkpoint/vgg16_netvlad_checkpoint'
     model = get_netvlad_pretrained(checkpoint_path)
     dim_descriptor_vlad = (ENCODER_DIM*NUM_CLUSTERS)
 
