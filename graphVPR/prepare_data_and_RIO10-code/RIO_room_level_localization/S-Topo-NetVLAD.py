@@ -18,7 +18,7 @@ import sys
 
 from utils import read_image
 from matching import getMatchInds, getMatchIndsTfidf, getMatchIndsBinary, getMatchIndsBinaryTfidf
-
+from get_netvlad_pretrained import get_netvlad_pretrained, ENCODER_DIM, NUM_CLUSTERS
 
 def netvlad_model(num_clusters=32):
     # Discard layers at the end of base network
@@ -89,7 +89,7 @@ def average_topoNetVLAD(featVect, num_images_per_room, num_clusters, feat_dim):
     return featVect
 
 @torch.no_grad()
-def topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, num_clusters,feat_dim, sample_path, sampling_freq, batch_size, norm_bool):
+def topoNetVLAD(model, base_path, base_rooms, dim_descriptor_vlad, num_clusters,feat_dim, sample_path, sampling_freq, batch_size, norm_bool):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     featVect_tor = torch.zeros((len(base_rooms), dim_descriptor_vlad)).cuda()
@@ -115,8 +115,10 @@ def topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, num_clusters,feat_di
             x_all.append(x)
             if (i_img+1) % batch_size == 0:
                 #x_all_batch = torch.cat(x_all[i_img+1 - batch_size:i_img+1], 0) # if x_all=[] is commented
-                x_all_batch = torch.cat(x_all, 0) # if below x_all=[] is uncommented
-                output = model(x_all_batch) 
+                x_all_batch = torch.cat(x_all, 0).to(device) # if below x_all=[] is uncommented
+                output = model.encoder(x_all_batch)
+                output = model.pool(output)
+                print('OUTPUT SHAPE', output.size(), flush=True)
                 featVect_tor[i_room] = featVect_tor[i_room] + torch.sum(output, 0)
                 x_all = []
         #print("CURRENTLY HERE. NOw only sampling of images remaining")
@@ -132,9 +134,9 @@ def topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, num_clusters,feat_di
 
 if __name__=='__main__':
     # 1. Given manual info
-    num_clusters=32
-    model, dim_ind = netvlad_model(num_clusters)
-    dim_descriptor_vlad = (dim_ind*num_clusters)
+    checkpoint_path = ''
+    model = get_netvlad_pretrained(checkpoint_path)
+    dim_descriptor_vlad = (ENCODER_DIM*NUM_CLUSTERS)
 
     sample_path = "./sample_graphVPR_data/"
     # Note: Use sampling_freq=1 for 100% accuracy on sample_path. Do note that this doesn't seem deterministic
@@ -167,7 +169,7 @@ if __name__=='__main__':
     else:
         base_rooms = rescan_rooms_ids
 
-    featVect = topoNetVLAD(base_path, base_rooms, dim_descriptor_vlad, num_clusters,dim_ind,
+    featVect = topoNetVLAD(model, base_path, base_rooms, dim_descriptor_vlad, NUM_CLUSTERS,ENCODER_DIM,
                         sample_path, sampling_freq, batch_size, norm_bool)
     if tf_idf:
         mInds = getMatchIndsTfidf(featVect, featVect, topK=2)
