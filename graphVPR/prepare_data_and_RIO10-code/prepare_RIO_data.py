@@ -64,7 +64,46 @@ def copy_data(paths, split, freqs):
                 #print(rgb_file, out_path_que_final)
                 copy2(rgb_file,out_path_que_final)
 
-if __name__ == '__main__':
+
+def write_pair_txt_brute_force(inp, output_txt):
+    # writes pairs txt files given folder names : in other words brute force pairs
+    # inp = '/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/datasets/graphVPR/room_level_localization_small/'
+
+    ref_path = Path(inp  + 'database/cutouts/')
+    query_path = Path(inp  + 'query/')
+    
+    assert ref_path.exists(), ref_path
+    assert query_path.exists(), query_path
+
+    def list_imgs(rooms_path, ref):
+        pref = 'database/cutouts/' if ref==True else 'query/'
+        fill_list = []
+        images = (list(rooms_path.glob('*color.jpg')))
+        for image in images:
+            fill_list.append(pref + image.name)
+            
+        return fill_list
+
+    query_list = list_imgs(query_path, ref=False)
+    ref_list = list_imgs(ref_path, ref=True)
+#
+    pairs = []
+    num_lines_p = 0
+    for query in query_list:
+        for ref in ref_list:
+            pair = (query, ref)
+            print(pair)
+            pairs.append(pair)
+            num_lines_p +=1
+    print(f"No of lines is {num_lines_p}")
+
+    with open(output_txt, 'w') as f:
+        f.write('\n'.join(' '.join([i, j]) for i, j in pairs))
+    num_lines = len(ref_list) * len(query_list)
+    print(f"No of lines written to {output_txt} is {num_lines}")
+
+def old_main():
+    # THIS WAS ROOM LEVEL DATA PREP for RIO10 dataset.
     ref_freq = 30 #every 30th image
     query_freq = 90 #every 90th image
 
@@ -88,3 +127,8 @@ if __name__ == '__main__':
 
     copy_data(paths, split02w01, freqs)
     copy_data(paths, split03w01, freqs)
+
+if __name__ == '__main__':
+    inp = '/data/InLoc_like_RIO10/scene01/'
+    output_txt= '../../pairs/graphVPR/rio_metric/bruteforce40.txt'
+    write_pair_txt_brute_force(inp, output_txt)

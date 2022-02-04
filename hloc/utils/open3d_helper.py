@@ -48,6 +48,44 @@ def viz_with_array_inp(xyz_points, rgb_file):
     vis.run()
     vis.destroy_window()
 
+def new_depth_to_scan():
+    #https://github.com/IntelRealSense/librealsense/blob/master/wrappers/python/examples/box_dimensioner_multicam/helper_functions.py#L151
+
+def load_depth_to_scan(depth_path, pos, rot):
+    # 1. Converts depth to scan
+    # 2. bring it to global frame from perspective frame
+    rotation_matrix = R.from_quat(rot).as_matrix()
+    position = pos.reshape((3, 1))
+    T = np.concatenate((rotation_matrix, position), axis=1)
+    T = np.concatenate((T, np.array([[0,0,0,1]])), axis=0)
+
+    fx, fy, cx, cy, width, height = 960, 960, 960.5, 540.5, 1920, 1080
+
+    K = np.array([
+    [fx, 0., cx, 0.],
+    [0., fy, cy, 0.],
+    [0., 0.,  1, 0],
+    [0., 0., 0, 1]])
+
+    xs = (np.linspace(0, width, width))
+    ys = (np.linspace(0, height, height))
+    xs, ys = np.meshgrid(xs, ys)
+
+    r=png.Reader(filename= depth_path )
+    pngdata_depth = r.asDirect()
+    depth = np.vstack(map(np.uint16, list(pngdata_depth[2])))
+    depth = depth/100.0
+
+    xys =  np.vstack(((xs) * depth, (ys) * depth, depth, np.ones(depth.shape)))# -depth or depth in 3rd arg?
+    xys = xys.reshape(4, -1)
+    xy_c0 = np.matmul(np.linalg.inv(K), xys)
+
+    xyz = T @ xy_c0
+    xyz = xyz.T[:,:3]
+
+    xyz = xyz.reshape((height, width, 3))
+    #print(f"DEBUG X: {xyz.shape}")
+    return xyz
 
 def save_view_point(pcd, filename):
     vis = o3d.visualization.Visualizer()

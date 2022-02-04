@@ -206,6 +206,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
     num_matches = 0
 
     for i, r in enumerate(retrieved):
+        # print(q,r)
         kpr = feature_file[r]['keypoints'].__array__()
         pair = names_to_pair(q, r)
         m = match_file[pair]['matches0'].__array__()
@@ -218,6 +219,8 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         num_matches += len(mkpq)
 
 
+        print('sys exit')
+        sys.exit()
         # viz_entire_room_by_registering(dataset_dir, r)
         scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
         # Note that width height of query different from reference
