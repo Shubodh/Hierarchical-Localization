@@ -18,11 +18,11 @@ import json
 
 
 from .utils.parsers import parse_retrieval, names_to_pair
-from .utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint, load_depth_to_scan
+from .utils.open3d_helper import custom_draw_geometry, load_view_point
+from .utils.camera_projection_helper import load_depth_to_scan
 
-# above gives: ImportError: attempted relative import with no known parent package
-# from utils.parsers import parse_retrieval, names_to_pair
-# from utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint
+sys.path.append('../')
+from p3p_view_synthesis_inverse_warping import viz_entire_room_by_registering
 
 def interpolate_scan(scan, kp):
     h, w, c = scan.shape
@@ -71,124 +71,6 @@ def get_scan_pose(dataset_dir, rpath):
     return P_after_GICP
 
 
-def viz_entire_room_file(dataset_dir, downsample=True):
-    # room level pcds are never used in this hloc pipeline
-    mat_file = (dataset_dir / "scans/DUC1/DUC_scan_024.ptx.mat")
-    print(mat_file)
-
-    xyz_file  = loadmat(Path(mat_file))#["XYZcut"]
-    #print(xyz_file["A"])
-    #print(xyz_file.keys())
-    sys.exit()
-    rgb_file = loadmat(Path(mat_file))["RGBcut"]
-
-    xyz_sp = (xyz_file.shape)
-
-    xyz_file = (xyz_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
-    rgb_file = (rgb_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
-
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(xyz_file)
-    pcd.colors = o3d.utility.Vector3dVector(rgb_file/255.0)
-
-    
-
-    # Downsampling for quicker visualization. Not needed if less pcds.
-    print(f"len(pcd.points): {len(pcd.points)}")
-    if downsample == True:
-        pcd_final = pcd.voxel_down_sample(voxel_size=0.01)  
-        print(f"After downsampling: {len(pcd.points)}")
-
-    mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
-    o3d.visualization.draw_geometries([pcd_final, mesh])
-    
-
-def viz_entire_room_by_registering(dataset_dir, r, img_path = None, p3p_pose = None, downsample = False):
-    # Load all the .jpg.mat files aka scan points of a particular room and visualize them
-    room_no = "024"#024, 025, 005, 084, 010
-    if img_path is None:
-        room_path_str =str(dataset_dir) + "/" + "cutouts_imageonly/DUC1/" + room_no + "/"
-        room_path = Path(room_path_str)  
-        print(f"room_path: {room_path}")
-        mat_files = sorted(list(room_path.glob('*.jpg.mat')))
-    #mat_files = [Path('/media/shubodh/DATA/OneDrive/rrc_projects/2021/github_general_projects/p3p_view-synthesis_inverse-warping/sample_data/inloc_data/cutouts_imageonly/DUC1/024/DUC_cutout_024_330_0.jpg.mat')]
-    else:
-        merge_all_room_pcd = True
-        if merge_all_room_pcd:
-            room_path_str =str(dataset_dir) + "/" + "cutouts_imageonly/DUC1/" + room_no + "/"
-            room_path = Path(room_path_str)  
-            print(f"room_path: {room_path}")
-            mat_files = sorted(list(room_path.glob('*.jpg.mat')))
-        else:
-            str_path = str(dataset_dir) + "/" + str(img_path) + ".mat"
-            mat_files = [Path(str_path)]
-
-    mat_files_small = mat_files#[:6]#6
-
-    pcds = []
-
-    for mat_file in mat_files_small:
-        print(mat_file)
-        #print(loadmat(Path(mat_file)))
-
-        xyz_file  = loadmat(Path(mat_file))["XYZcut"]
-        rgb_file = loadmat(Path(mat_file))["RGBcut"]
-
-        xyz_sp = (xyz_file.shape)
-
-        xyz_file = (xyz_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
-        rgb_file = (rgb_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
-
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(xyz_file)
-        pcd.colors = o3d.utility.Vector3dVector(rgb_file/255.0)
-
-        pcds.append(pcd)
-    
-    pcd_final = o3d.geometry.PointCloud()
-    for pcd_each in pcds:
-        pcd_final += pcd_each
-    
-
-    # Downsampling for quicker visualization. Not needed if less pcds.
-    print(f"len(pcd.points): {len(pcd_final.points)}")
-    if downsample == True:
-        print(f"Before downsampling: {len(pcd_final.points)}")
-        pcd_final = pcd_final.voxel_down_sample(voxel_size=0.002) #0.01
-        print(f"After downsampling: {len(pcd_final.points)}")
-
-    coord_mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
-    coord_pcd =  coord_mesh.sample_points_uniformly(number_of_points=500)
-    #print(mesh.get_center())
-    base_path = "/home/shubodh/hdd1/Shubodh/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/"
-    if p3p_pose is None:
-        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/T_" + room_no + "_l1_blue_issue.json"
-        #filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/" + room_no + "_T1.json"
-        #custom_draw_geometry(pcd_final, coord_mesh, filename, show_coord=True)
-    else:
-        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/p3p_" + room_no + ".json"
-  
-        #vpt_json = json.load(open(filename))
-        #vpt_json['extrinsic'] = p3p_pose['extrinsic']
-        #vpt_json['intrinsic']['intrinsic_matrix'] = p3p_pose['intrinsic']['intrinsic_matrix']
-        #print(vpt_json)
-        json_object = json.dumps(p3p_pose, indent = 4)
-        with open(filename, "w") as p3p_pose_file:
-            p3p_pose_file.write(json_object)
-    
-    load_view_point(pcd_final, filename, custom_inloc_viewer=True)
-    #synthesize_img_given_viewpoint(pcd_final, filename)
-
-
-
-    sys.exit()
-#    scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
-#    mkp3d, valid = interpolate_scan(scan_r, mkpr)
-#    Tr = get_scan_pose(dataset_dir, r)
-#    mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
-#    print("DEBUG")
-
-
 
 def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
                       skip=None):
@@ -218,7 +100,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         num_matches += len(mkpq)
 
 
-        # viz_entire_room_by_registering(dataset_dir, r)
+        viz_entire_room_by_registering(dataset_dir, r)
         scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
         # Note that width height of query different from reference
         #print(f"DEBUG 1:  width, height - {scan_r.shape, width, height}")
