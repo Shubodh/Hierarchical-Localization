@@ -97,6 +97,7 @@ def load_view_point(pcd, filename, custom_inloc_viewer=False):
 
 
     if custom_inloc_viewer==True:
+        # some issues with this code (==True part, next part seems fine)
 
         H = 1200
         W = 1600

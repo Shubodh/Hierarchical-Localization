@@ -42,7 +42,7 @@ def interpolate_scan(scan, kp):
 def pose_from_2d3dpair_habitat():
     pass
 
-def pose_from_2d3dpair_inloc(dataset_dir, img_path, feature_file, skip_matches):
+def pose_from_2d3dpair_inloc(dataset_dir, img_path, feature_file, skip_matches=20):
     height, width = cv2.imread(str(dataset_dir / img_path)).shape[:2]
     cx = .5 * width 
     cy = .5 * height
@@ -63,33 +63,99 @@ def pose_from_2d3dpair_inloc(dataset_dir, img_path, feature_file, skip_matches):
     return ret, kpr, kp3d
 
 
-def viz_entire_room_by_registering(dataset_dir, r=None, img_path = None, p3p_pose = None, downsample = False):
-    # Load all the .jpg.mat files aka scan points of a particular room and visualize them
-    room_no = "024"#024, 025, 005, 084, 010
-    if img_path is None:
-        room_path_str =str(dataset_dir) + "/" + "cutouts_imageonly/DUC1/" + room_no + "/"
-        room_path = Path(room_path_str)  
-        print(f"room_path: {room_path}")
-        mat_files = sorted(list(room_path.glob('*.jpg.mat')))
-    #mat_files = [Path('/media/shubodh/DATA/OneDrive/rrc_projects/2021/github_general_projects/p3p_view-synthesis_inverse-warping/sample_data/inloc_data/cutouts_imageonly/DUC1/024/DUC_cutout_024_330_0.jpg.mat')]
-    else:
-        merge_all_room_pcd = False
-        if merge_all_room_pcd:
-            room_path_str =str(dataset_dir) + "/" + "cutouts_imageonly/DUC1/" + room_no + "/"
-            room_path = Path(room_path_str)  
-            print(f"room_path: {room_path}")
-            mat_files = sorted(list(room_path.glob('*.jpg.mat')))
-        else:
-            str_path = str(dataset_dir) + "/" + str(img_path) + ".mat"
-            mat_files = [Path(str_path)]
+# def old_o3d_params():
+#     focal_length_o3d = 617.47611289830479
+#     cx_o3d = 682.5
+#     cy_o3d = 356.0
+#         #356.0,
+# #    K[0][0], K[1][1] = focal_length, focal_length
+# #    K[0][2] = cx
+# #    K[1][2] = cy
+# #    print("K after")
+#     intrinsic_matrix_o3d = list([ 
+#         focal_length_o3d,
+#         0.0,
+#         0.0,
+#         0.0,
+#         focal_length_o3d,
+#         0.0,
+#         cx_o3d,
+#         cy_o3d,
+#         1.0
+#     ])
 
-    mat_files_small = mat_files[:6]#6
+#     o3d_params = False 
+#     if o3d_params == True:
+#         intrinsic_matrix_1 = intrinsic_matrix_o3d
+#         H =713
+#         W = 1366
 
+
+def find_p3p_pose(dataset_dir, features, img_path):
+    assert features.exists(), features
+    img_full = dataset_dir / img_path
+    assert img_full.exists(), img_full
+    
+    feature_file = h5py.File(features, 'r')
+    img_path_str = str(img_path)
+    ret, kpq, kp3d = pose_from_2d3dpair_inloc(dataset_dir, img_path_str, feature_file)
+
+    ret_scipy_convention = ret['qvec']
+    ret_scipy_convention[0] = ret['qvec'][1]
+    ret_scipy_convention[1] = ret['qvec'][2]
+    ret_scipy_convention[2] = ret['qvec'][3]
+    ret_scipy_convention[3] = ret['qvec'][0]
+
+    rot_matrix = R.from_quat(ret_scipy_convention).as_matrix()
+    # print(f"tvec, qvec: {ret['tvec'], ret_scipy_convention}")
+    # print(f"rot-matrix: {rot_matrix}")
+    extrinsic_matrix = np.hstack((rot_matrix, ret['tvec'].reshape((3,1))))
+    extrinsic_matrix = np.vstack((extrinsic_matrix, np.array([[0,0,0,1]])))
+
+
+    extrinsic_matrix_col_major = list(extrinsic_matrix.T.reshape((16)))
+
+    H = 1200
+    W = 1600
+    cx = (.5 * W)# - 0.5
+    cy = (.5 * H)# - 0.5
+    focal_length = 4032. * 28. / 36. 
+
+
+    intrinsic_matrix_1 = list([ 
+        focal_length,
+        0.0,
+        0.0,
+        0.0,
+        focal_length,
+        0.0,
+        cx,
+        cy,
+        1.0
+    ])
+    # print(f"MATRICES: exitrinsic: {extrinsic_matrix}")
+    # print(f"FLAT: extrinsic, intrinsic: {extrinsic_matrix_col_major} {intrinsic_matrix_1}")
+
+
+    p3p_pose = {
+        "class_name": "PinholeCameraParameters",
+        "extrinsic": list(extrinsic_matrix_col_major), 
+        "intrinsic": {"height": H,
+                        "intrinsic_matrix": intrinsic_matrix_1,
+                        "width": W},
+        "version_major": 1,
+        "version_minor": 0
+    }
+
+    return p3p_pose
+
+def merged_pcd_from_mat_files_inloc(mat_files):
     pcds = []
 
-    for mat_file in mat_files_small:
+    for mat_file in mat_files:
+        mat_file_path = Path(mat_file)
+        assert mat_file_path.exists(), mat_file_path
         print(mat_file)
-        #print(loadmat(Path(mat_file)))
 
         xyz_file  = loadmat(Path(mat_file))["XYZcut"]
         rgb_file = loadmat(Path(mat_file))["RGBcut"]
@@ -109,6 +175,39 @@ def viz_entire_room_by_registering(dataset_dir, r=None, img_path = None, p3p_pos
     for pcd_each in pcds:
         pcd_final += pcd_each
     
+    return pcd_final
+    
+
+def pcd_and_p3pfile_given_p3p_pose(dataset_dir, img_path,room_no, p3p_pose=None,  merge_entire_room=False, save_compute=True, downsample=False):
+
+    # base_path = "/home/shubodh/hdd1/Shubodh/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/"
+    base_path = "/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/"
+    if p3p_pose is None: # If the json file has full info (for example, through some external method)
+        # filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/T_" + room_no + "_l1_blue_issue.json"
+        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/" + room_no + "/" +room_no + "_L1.json"
+        # coord_mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
+        #custom_draw_geometry(pcd_final, coord_mesh, filename, show_coord=True)
+    else: # Here dumping p3p_pose (and other instrinsics) info into new json file as we calculated that in this script (and not existing before)
+        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/p3p_"+ room_no + "/p3p_" + room_no + ".json"
+  
+        json_object = json.dumps(p3p_pose, indent = 4)
+        with open(filename, "w") as p3p_pose_file:
+            p3p_pose_file.write(json_object)
+
+    if merge_entire_room:
+        room_path_str =str(dataset_dir) + "/" + "cutouts_imageonly/DUC1/" + room_no + "/"
+        room_path = Path(room_path_str)  
+        print(f"room_path: {room_path}")
+        mat_files = sorted(list(room_path.glob('*.jpg.mat')))
+        if save_compute:
+            mat_files = mat_files[:6]#6
+            print("Note: Using only 6 mat files of entire room for computation.")
+    else:
+        str_path = str(dataset_dir) + "/" + str(img_path) + ".mat"
+        mat_files = [Path(str_path)]
+
+
+    pcd_final = merged_pcd_from_mat_files_inloc(mat_files)
 
     # Downsampling for quicker visualization. Not needed if less pcds.
     print(f"len(pcd.points): {len(pcd_final.points)}")
@@ -117,142 +216,46 @@ def viz_entire_room_by_registering(dataset_dir, r=None, img_path = None, p3p_pos
         pcd_final = pcd_final.voxel_down_sample(voxel_size=0.002) #0.01
         print(f"After downsampling: {len(pcd_final.points)}")
 
-    coord_mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
-    coord_pcd =  coord_mesh.sample_points_uniformly(number_of_points=500)
-    #print(mesh.get_center())
-    # base_path = "/home/shubodh/hdd1/Shubodh/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/"
-    base_path = "/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/"
-    if p3p_pose is None:
-        # filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/T_" + room_no + "_l1_blue_issue.json"
-        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/" + room_no + "/" +room_no + "_L1.json"
-        #custom_draw_geometry(pcd_final, coord_mesh, filename, show_coord=True)
-    else:
-        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/p3p_"+ room_no + "/p3p_" + room_no + ".json"
-        print("hello there: reading from")
-        print(filename)
-  
-        #vpt_json = json.load(open(filename))
-        #vpt_json['extrinsic'] = p3p_pose['extrinsic']
-        #vpt_json['intrinsic']['intrinsic_matrix'] = p3p_pose['intrinsic']['intrinsic_matrix']
-        #print(vpt_json)
-        json_object = json.dumps(p3p_pose, indent = 4)
-        with open(filename, "w") as p3p_pose_file:
-            p3p_pose_file.write(json_object)
     
-    load_view_point(pcd_final, filename, custom_inloc_viewer=False)
-    synthesize_img_given_viewpoint(pcd_final, filename)
-
-    sys.exit()
+    return pcd_final, filename
 
 
-def main(dataset_dir, features, img_path, skip_matches=None):
-    
-    assert features.exists(), features
-    
-    feature_file = h5py.File(features, 'r')
-    img_path_str = str(img_path)
-    ret, kpq, kp3d = pose_from_2d3dpair_inloc(dataset_dir, img_path_str, feature_file, skip_matches)
-
-    ret_scipy_convention = ret['qvec']
-    ret_scipy_convention[0] = ret['qvec'][1]
-    ret_scipy_convention[1] = ret['qvec'][2]
-    ret_scipy_convention[2] = ret['qvec'][3]
-    ret_scipy_convention[3] = ret['qvec'][0]
-
-    rot_matrix = R.from_quat(ret_scipy_convention).as_matrix()
-    print(f"tvec, qvec: {ret['tvec'], ret_scipy_convention}")
-    print(f"rot-matrix: {rot_matrix}")
-    extrinsic_matrix = np.hstack((rot_matrix, ret['tvec'].reshape((3,1))))
-    extrinsic_matrix = np.vstack((extrinsic_matrix, np.array([[0,0,0,1]])))
 
 
-    # Debug: Trying inverse matrix
-    #print(f"extrinsic_matrix before: {extrinsic_matrix}")
-    #R_T = extrinsic_matrix[0:3,0:3].T
-    #R_T_times_t = -extrinsic_matrix[0:3,0:3].T @ extrinsic_matrix[0:3,3]
-    #extrinsic_matrix[0:3,0:3] = R_T
-    ##extrinsic_matrix[0:3,3] = R_T_times_t
-    #print(f"extrinsic_matrix after: {extrinsic_matrix}")
+def main_using_p3p_pose(dataset_dir, features):
+    room_no = "024"#024, 025, 005, 084, 010
+    #DUC_cutout_024_150_0.jpg" "/DUC_cutout_025_0_0.jpg"
+    img_path = Path("cutouts_imageonly/DUC1/" + room_no + "/DUC_cutout_024_150_0.jpg") 
 
-    
-    extrinsic_matrix_col_major = list(extrinsic_matrix.T.reshape((16)))
+    p3p_pose = find_p3p_pose(dataset_dir, features, img_path)
+    pcd_final, p3p_file = pcd_and_p3pfile_given_p3p_pose(dataset_dir, img_path, room_no, p3p_pose)
+    load_view_point(pcd_final, p3p_file, custom_inloc_viewer=False)
+    synthesize_img_given_viewpoint(pcd_final, p3p_file)
 
-    H = 1200
-    W = 1600
-    #cx = .5 * W 
-    #cy = .5 * H
-    cx = (.5 * W)# - 0.5
-    cy = (.5 * H)# - 0.5
-    focal_length = 4032. * 28. / 36. 
-    focal_length_o3d = 617.47611289830479
-    cx_o3d = 682.5
-    cy_o3d = 356.0
-        #356.0,
-#    K[0][0], K[1][1] = focal_length, focal_length
-#    K[0][2] = cx
-#    K[1][2] = cy
-#    print("K after")
+def main_using_o3dviz_pose(dataset_dir, features):
+    room_no = "024"#024, 025, 005, 084, 010
+    #DUC_cutout_024_150_0.jpg" "/DUC_cutout_025_0_0.jpg"
+    img_path = Path("cutouts_imageonly/DUC1/" + room_no + "/DUC_cutout_024_150_0.jpg") 
 
+    p3p_pose = find_p3p_pose(dataset_dir, features, img_path)
+    pcd_final, p3p_file = pcd_and_p3pfile_given_p3p_pose(dataset_dir, img_path, room_no, 
+                                    p3p_pose=None, merge_entire_room=True)
+    load_view_point(pcd_final, p3p_file, custom_inloc_viewer=False)
+    synthesize_img_given_viewpoint(pcd_final, p3p_file)
 
-    intrinsic_matrix_1 = list([ 
-        focal_length,
-        0.0,
-        0.0,
-        0.0,
-        focal_length,
-        0.0,
-        cx,
-        cy,
-        1.0
-    ])
-    intrinsic_matrix_o3d = list([ 
-        focal_length_o3d,
-        0.0,
-        0.0,
-        0.0,
-        focal_length_o3d,
-        0.0,
-        cx_o3d,
-        cy_o3d,
-        1.0
-    ])
-
-    o3d_params = False 
-    if o3d_params == True:
-        intrinsic_matrix_1 = intrinsic_matrix_o3d
-        H =713
-        W = 1366
-    print(f"MATRICES: exitrinsic: {extrinsic_matrix}")
-    print(f"FLAT: extrinsic, intrinsic: {extrinsic_matrix_col_major} {intrinsic_matrix_1}")
-
-
-    p3p_pose = {
-        "class_name": "PinholeCameraParameters",
-        "extrinsic": list(extrinsic_matrix_col_major), 
-        "intrinsic": {"height": H,
-                        "intrinsic_matrix": intrinsic_matrix_1,
-                        "width": W},
-        "version_major": 1,
-        "version_minor": 0
-    }
-
-    full_path = "/home/shubodh/hdd1/Shubodh/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/graphVPR/ideas_SG/place-graphVPR/rand_json/"
-    #with open(full_path + "p3p_pose.json", "w") as p3p_pose_file:
-    #    json.dump(p3p_pose, p3p_pose_file)
-
-    viz_entire_room_by_registering(dataset_dir, img_path=img_path, p3p_pose=p3p_pose)
-
+# def main(dataset_dir, features, img_path):
+#     temp_all(dataset_dir, features, img_path)
+#     # 1. main_using_p3p_pose()
+#     # 2. main_using_gt_pose() (for RIO10)
+#     # 3. main_using_any_pose() (either selected thru open3d or your convex hull algo)
 
 if __name__ == '__main__':
     # Example arguments:
-    # --dataset_dir ../datasets/inloc_small/ # This would be path of where `cutouts_imageonly` resides. 
-    # --img_path cutouts_imageonly/DUC1/024/DUC_cutout_024_300_0.jpg
-    # --features sample_data/inloc_data/feats-superpoint-n4096-r1600.h5
-    # --skip_matches 20
+    # --dataset_dir ./datasets/inloc_small/ # This would be path of where `cutouts_imageonly` resides. 
+    # --features ./outputs/inloc_small/feats-superpoint-n4096-r1600.h5 
     parser = argparse.ArgumentParser()
     parser.add_argument('--dataset_dir', type=Path, required=True)
     parser.add_argument('--features', type=Path, required=True)
-    parser.add_argument('--img_path', type=Path, required=True)
-    parser.add_argument('--skip_matches', type=int)
     args = parser.parse_args()
-    main(**args.__dict__)
+    main_using_p3p_pose(**args.__dict__)
+    main_using_o3dviz_pose(**args.__dict__)

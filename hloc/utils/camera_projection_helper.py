@@ -3,6 +3,8 @@ import numpy as np
 import open3d as o3d
 import json
 
+# from open3d_helper import viz_with_array_inp
+
 
 def get_depth_at_pixel(depth_frame, pixel_x, pixel_y):
     """
@@ -186,6 +188,8 @@ def get_clipped_pointcloud(pointcloud, boundary):
     pointcloud = pointcloud[:,np.logical_and(pointcloud[1,:]<boundary[3], pointcloud[1,:]>boundary[2])]
     return pointcloud
 
+
+
 def synthesize_img_given_viewpoint(pcd, viewpoint_json):
     # colors = colors * 255
     xyz = np.asarray(pcd.points)
@@ -198,6 +202,60 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
     K = np.array(vpt_json['intrinsic']['intrinsic_matrix']).reshape(3,3).T
     print("K")
     print(K)
+
+    rvecs = np.zeros(3)
+    cv2.Rodrigues(extrinsics[0:3,0:3], rvecs)
+    tvecs = np.zeros(3)
+    tvecs = extrinsics[0:3,3] # - extrinsics[0:3,0:3].T @ extrinsics[0:3,3]
+
+    print(f"rvecs, tvecs: {rvecs, tvecs}")
+    dist = np.zeros(5)
+    print("Starting cv2.project:")
+    xyz_T = xyz.T
+    xyz_hom1 = np.vstack((xyz_T, np.ones(xyz_T[0].shape)))
+    K_hom = np.vstack((K, np.zeros(K[0].shape)))
+    K_hom = np.hstack((K_hom, np.array([[0,0,0,1]]).T))
+
+    #print("1. X_G visualization")
+    #viz_with_array_inp(xyz_hom1.T[:, :3],np.asarray(pcd.colors))
+    xyz_hom1 = np.matmul(extrinsics, xyz_hom1) #xyz_hom1.shape: 4 * 11520000
+    #print("2. X_L visualization")
+    #viz_with_array_inp(xyz_hom1.T[:, :3],np.asarray(pcd.colors))
+
+    #print("3. X_L_corr visualization") # #tf_ex = np.array([[1,0,0],[0,-1,0],[0,0,-1]]), then np.vstack((tf_ex, np.zeros(tf_ex[0].shape))), then np.hstack((tf_ex_hom, np.array([[0,0,0,1]]).T)), then xyz_hom1 = np.matmul(tf_ex_hom, xyz_hom1)
+    #viz_with_array_inp(xyz_hom1.T[:, :3],np.asarray(pcd.colors))
+
+    xy_img = np.matmul(K_hom, xyz_hom1)
+    #print(np.nanmax(xy_img[0:2,:]), np.nanmin(xy_img[0:2,:]))
+    xy_img = xy_img[0:2,:] / xy_img[2:3,:] #TODO: Check if minus - should be there before xy_img[2:3,:].
+    #print(xy_imgcv.shape, xy_img.shape)
+    xy_imgcv = np.array(xy_img.T, dtype = np.int_)
+
+    print("Done cv2.project:")
+
+    # GETTING SAME RESULTS USING OPENCV TOO: see below old_code_dump_from_synthesize_img_given_viewpoint()
+    synth_img = np.ones((H, W, 3))  * 255
+
+    for i in range(colors.shape[0]):
+        # Be careful here: For xy_imgcv, (x,y) means x right first then y down.
+        # Whereas for numpy array, (x, y) means x down first then y right.
+
+        # 1. Ignore points with negative depth, i.e. ones behind the camera. 
+        if xyz_hom1[2,i] > 0: # Make sure the xyz you're checking are in ego frame
+            # 2. projected pixel must be between  [{0,W},{0,H}]
+            if (xy_imgcv[i,0] >= 0) & (xy_imgcv[i,0] < W):
+                if (xy_imgcv[i,1] >= 0) &  (xy_imgcv[i,1] < H):
+                    #print(xy_imgcv[i], i)
+                    synth_img[xy_imgcv[i,1], xy_imgcv[i,0]] = colors[i] #
+
+
+    img = o3d.geometry.Image((synth_img).astype(np.uint8))
+    #o3d.visualization.draw_geometries([img])
+    o3d.io.write_image(viewpoint_json + "synth.jpg", img)
+    print(f"image written to {viewpoint_json}synth.jpg")
+
+
+#def old_code_dump_from_synthesize_img_given_viewpoint():
 #    cx = .5 * W 
 #    cy = .5 * H
 #    focal_length = 4032. * 28. / 36.
@@ -208,50 +266,8 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
 #    print(K)
     #H = int(vpt_json['intrinsic']['height'])
     #W = int(vpt_json['intrinsic']['width'])
-
-    
-
-#    print(f"xyz, extrinsics {xyz.shape}{extrinsics.shape}")
-#    xyz_T = np.matmul(extrinsics[0:3,0:3], xyz.T)
-#    xyz = xyz_T.T
-    rvecs = np.zeros(3)
-    cv2.Rodrigues(extrinsics[0:3,0:3], rvecs)
     #cv2.Rodrigues(extrinsics[0:3,0:3].T, rvecs)
-    tvecs = np.zeros(3)
-    tvecs = extrinsics[0:3,3]
     #tvecs = - extrinsics[0:3,0:3].T @ extrinsics[0:3,3]
-
-
-    print(f"rvecs, tvecs: {rvecs, tvecs}")
-    dist = np.zeros(5)
-    print("Starting cv2.project:")
-    xyz_T = xyz.T
-    xyz_hom1 = np.vstack((xyz_T, np.ones(xyz_T[0].shape)))
-    K_hom = np.vstack((K, np.zeros(K[0].shape)))
-    K_hom = np.hstack((K_hom, np.array([[0,0,0,1]]).T))
-
-#
-
-    #print("1. X_G visualization")
-    #viz_with_array_inp(xyz_hom1.T[:, :3],np.asarray(pcd.colors))
-    xyz_hom1 = np.matmul(extrinsics, xyz_hom1) #xyz_hom1.shape: 4 * 11520000
-    #print("2. X_L visualization")
-    #viz_with_array_inp(xyz_hom1.T[:, :3],np.asarray(pcd.colors))
-
-    #tf_ex = np.array([[1,0,0],[0,-1,0],[0,0,-1]])
-    #tf_ex_hom = np.vstack((tf_ex, np.zeros(tf_ex[0].shape)))
-    #tf_ex_hom = np.hstack((tf_ex_hom, np.array([[0,0,0,1]]).T))
-    #xyz_hom1 = np.matmul(tf_ex_hom, xyz_hom1)
-    #print("3. X_L_corr visualization")
-    #viz_with_array_inp(xyz_hom1.T[:, :3],np.asarray(pcd.colors))
-
-    xy_img = np.matmul(K_hom, xyz_hom1)
-    #print(np.nanmax(xy_img[0:2,:]), np.nanmin(xy_img[0:2,:]))
-    xy_img = xy_img[0:2,:] / xy_img[2:3,:] #TODO: Check if minus - should be there before xy_img[2:3,:].
-    #print(xy_imgcv.shape, xy_img.shape)
-    xy_imgcv = np.array(xy_img.T, dtype = np.int_)
-
-    print("Done cv2.project:")
 
     # GETTING SAME RESULTS USING OPENCV TOO:
     #xy_imgcv, jac = cv2.projectPoints(xyz, rvecs, tvecs, K, dist)
@@ -269,37 +285,6 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
 #    print(np.nanmax(xy_imgcv[final_valid], axis=0))
 #    #print(np.argwhere(final_valid==False))
 #
-#
-#    #print(colors.shape, colors[:10]*255)
-#
-    synth_img = np.ones((H, W, 3))  * 255
-#    print(synth_img.shape)
-
-#    colors_re = colors.reshape((H,W,3))
-#    colors_re = colors_re.T
-#    colors = colors_re.reshape((H*W, 3))
-    #print(f"xy_imgcv.shape, synth_img.shape, colors.shape: {xy_imgcv.shape}, {synth_img.shape}, {colors.shape}")
-    #synth_img(xy_imgcv[:]) 
-    for i in range(colors.shape[0]):
-        # Be careful here: For xy_imgcv, (x,y) means x right first then y down.
-        # Whereas for numpy array, (x, y) means x down first then y right.
-
-        # 1. Ignore points with negative depth, i.e. ones behind the camera. 
-        if xyz_hom1[2,i] > 0: # Make sure the xyz you're checking are in ego frame
-            # 2. projected pixel must be between  [{0,W},{0,H}]
-            if (xy_imgcv[i,0] >= 0) & (xy_imgcv[i,0] < W):
-                if (xy_imgcv[i,1] >= 0) &  (xy_imgcv[i,1] < H):
-                    #print(xy_imgcv[i], i)
-                    synth_img[xy_imgcv[i,1], xy_imgcv[i,0]] = colors[i] #
-
-
-
-    img = o3d.geometry.Image((synth_img).astype(np.uint8))
-    #o3d.visualization.draw_geometries([img])
-    o3d.io.write_image(viewpoint_json + "synth.jpg", img)
-    print(f"image written to {viewpoint_json}synth.jpg")
-
-
     # 2. habitat script grid_sample method
 
 #    colors = np.array(np.asarray(pcd.colors) , dtype=np.single)
@@ -337,3 +322,4 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
 #    #plt.imshow(img2_warped.squeeze().permute(1,2,0))
 #    #ax1.set_title("View 2 warped into View 1 \n according to the estimated transformation", fontsize='large')
 #    #ax1.axis('off')
+#
