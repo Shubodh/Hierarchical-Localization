@@ -66,20 +66,55 @@ def custom_draw_geometry(pcd, coord_mesh, filename, show_coord=True):
     #print(param.extrinsic)
     vis.destroy_window()
 
-def viz_with_array_inp(xyz_points, rgb_file):
+def viz_with_array_inp(xyz_points, rgb_points=None, coords_bool = False):
 
     pcd = o3d.geometry.PointCloud()
     pcd.points = o3d.utility.Vector3dVector(xyz_points)
-    pcd.colors = o3d.utility.Vector3dVector(rgb_file)
-    coord_mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
+    if rgb_points is not None:
+        pcd.colors = o3d.utility.Vector3dVector(rgb_points)
+    if coords_bool:
+        coord_mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
 
     vis = o3d.visualization.Visualizer()
     vis.create_window()
     vis.add_geometry(pcd)
-    vis.add_geometry(coord_mesh)
+    if coords_bool:
+        vis.add_geometry(coord_mesh)
     vis.run()
     vis.destroy_window()
 
+def o3d_convert_depth_frame_to_pointcloud(color_file, depth_file, cam_intrinsics, img_size):
+    """
+    Convert the depthmap to a 3D point cloud
+
+    Parameters:
+    -----------
+    depth_file 	 	 : path to depth file 
+    color_file       : path to rgb image file 
+    cam_intrinsics : dict of camera intrinsic matrix: keys are 'fx', 'fy', 'cx', 'cy'
+                        of the imager in whose coordinate system the depth_frame is computed
+    img_size  :   height, width 
+
+    Return:
+    ----------
+    xyz : array
+        The xyz values of the pointcloud in meters
+    rgb : array
+        The corresponding rgb values of the pointcloud 
+
+    """
+    height, width = img_size
+    fx, fy, cx, cy = cam_intrinsics['fx'], cam_intrinsics['fy'], cam_intrinsics['cx'], cam_intrinsics['cy']
+
+    pinhole_camera_intrinsic = o3d.camera.PinholeCameraIntrinsic(width,height,fx,fy,cx,cy)
+    # print(pinhole_camera_intrinsic.intrinsic_matrix)
+
+    color = o3d.io.read_image(str(color_file))
+    depth = o3d.io.read_image(str(depth_file))
+    rgbd = o3d.geometry.RGBDImage.create_from_color_and_depth(color, depth, convert_rgb_to_intensity = False)
+    pcd = o3d.geometry.PointCloud.create_from_rgbd_image(rgbd, pinhole_camera_intrinsic)
+
+    return pcd, np.asarray(pcd.points), np.asarray(pcd.colors)
 
 def save_view_point(pcd, filename):
     vis = o3d.visualization.Visualizer()

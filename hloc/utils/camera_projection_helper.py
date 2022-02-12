@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import open3d as o3d
 import json
+import sys
 
 # from open3d_helper import viz_with_array_inp
 
@@ -28,7 +29,7 @@ def get_depth_at_pixel(depth_frame, pixel_x, pixel_y):
 
 
 
-def convert_depth_pixel_to_metric_coordinate(depth, pixel_x, pixel_y, camera_intrinsics):
+def convert_depth_pixel_to_metric_coordinate(depth, pixel_x, pixel_y, cam_intrinsics):
     """
     Convert the depth and image point information to metric coordinates
 
@@ -40,7 +41,8 @@ def convert_depth_pixel_to_metric_coordinate(depth, pixel_x, pixel_y, camera_int
                            The x value of the image coordinate
     pixel_y 	  	 	 : double
                             The y value of the image coordinate
-    camera_intrinsics : The intrinsic values of the imager in whose coordinate system the depth_frame is computed
+    cam_intrinsics : dict of camera intrinsic matrix: keys are 'fx', 'fy', 'cx', 'cy'
+                        of the imager in whose coordinate system the depth_frame is computed
 
     Return:
     ----------
@@ -52,50 +54,67 @@ def convert_depth_pixel_to_metric_coordinate(depth, pixel_x, pixel_y, camera_int
         The z value in meters
 
     """
-    X = (pixel_x - camera_intrinsics.ppx)/camera_intrinsics.fx *depth
-    Y = (pixel_y - camera_intrinsics.ppy)/camera_intrinsics.fy *depth
+    fx, fy, cx, cy = cam_intrinsics['fx'], cam_intrinsics['fy'], cam_intrinsics['cx'], cam_intrinsics['cy']
+    X = ((pixel_x - cx)*depth)/fx 
+    Y = ((pixel_y - cy)*depth)/fy 
     return X, Y, depth
 
 
 
-def convert_depth_frame_to_pointcloud(depth_image, camera_intrinsics ):
+def convert_depth_frame_to_pointcloud(depth_image, rgb_img, cam_intrinsics):
     """
     Convert the depthmap to a 3D point cloud
 
     Parameters:
     -----------
-    depth_frame 	 	 : rs.frame()
+    depth_image 	 	 : numpy depth array 
                            The depth_frame containing the depth map
-    camera_intrinsics : The intrinsic values of the imager in whose coordinate system the depth_frame is computed
+    rgb_image            : numpy corresponding rgb array 
+    cam_intrinsics : dict of camera intrinsic matrix: keys are 'fx', 'fy', 'cx', 'cy'
+                        of the imager in whose coordinate system the depth_frame is computed
 
     Return:
     ----------
-    x : array
-        The x values of the pointcloud in meters
-    y : array
-        The y values of the pointcloud in meters
-    z : array
-        The z values of the pointcloud in meters
+    xyz : array
+        The xyz values of the pointcloud in meters
+    rgb : array
+        The corresponding rgb values of the pointcloud 
 
     """
     
+    fx, fy, cx, cy = cam_intrinsics['fx'], cam_intrinsics['fy'], cam_intrinsics['cx'], cam_intrinsics['cy']
     [height, width] = depth_image.shape
 
     nx = np.linspace(0, width-1, width)
     ny = np.linspace(0, height-1, height)
     u, v = np.meshgrid(nx, ny)
-    x = (u.flatten() - camera_intrinsics.ppx)/camera_intrinsics.fx
-    y = (v.flatten() - camera_intrinsics.ppy)/camera_intrinsics.fy
+    x = (u.flatten() - cx)/fx
+    y = (v.flatten() - cy)/fy
 
-    z = depth_image.flatten() / 1000;
+    z = depth_image.flatten() / 1000
     x = np.multiply(x,z)
     y = np.multiply(y,z)
 
+    rgb_img = rgb_img.reshape(-1, 3)
+
+    print("TODO-Later-1: Your doubt of how to represent points with no depth values is here: Take a look")
     x = x[np.nonzero(z)]
     y = y[np.nonzero(z)]
     z = z[np.nonzero(z)]
 
-    return x, y, z
+    rgb  = rgb_img[np.nonzero(z)]
+
+    # print(x.shape, rgb.shape, rgb_img.shape)
+    # sys.exit()
+
+    xyz = np.zeros((x.shape[0], 3))
+    xyz[:,0] = x
+    xyz[:,1] = y
+    xyz[:,2] = z
+    # print(xyz.shape, xyz[:10], x[:10], y[:10], z[:10])
+    # sys.exit()
+
+    return xyz, rgb
 
 def load_depth_to_scan(depth_path, pos, rot):
     # 1. Converts depth to scan
@@ -161,8 +180,8 @@ def convert_pointcloud_to_depth(pointcloud, camera_intrinsics):
     m = x_[np.nonzero(z_)]/z_[np.nonzero(z_)]
     n = y_[np.nonzero(z_)]/z_[np.nonzero(z_)]
 
-    x = m*camera_intrinsics.fx + camera_intrinsics.ppx
-    y = n*camera_intrinsics.fy + camera_intrinsics.ppy
+    x = m*camera_intrinsics.fx + camera_intrinsics.cx
+    y = n*camera_intrinsics.fy + camera_intrinsics.cy
 
     return x, y
 
