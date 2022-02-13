@@ -106,9 +106,9 @@ def output_global_scan_rio(dataset_dir, r):
 
     return global_pcd 
 
-def cam_intrinsics_from_ref_img(dataset_dir, r):
-    full_prefix_path = dataset_dir / r.parents[0]
-    r_stem = r.stem.replace("color", "")
+def cam_intrinsics_from_query_img(dataset_dir, q):
+    full_prefix_path = dataset_dir / q.parents[0]
+    # print(full_prefix_path)
 
     camera_file = Path(full_prefix_path, 'camera.yaml')
     assert camera_file.exists(), camera_file
@@ -127,7 +127,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
     # cx = .5 * width 
     # cy = .5 * height
     # focal_length = 4032. * 28. / 36.
-    fx, fy, cx, cy, height, width = cam_intrinsics_from_ref_img(Path(dataset_dir), Path(retrieved[0]))
+    fx, fy, cx, cy, height, width = cam_intrinsics_from_query_img(Path(dataset_dir), Path(q))
     print(fx, fy, cx, cy, height, width)
     print("Note: using focal_length as fx, NOT fy.")
     focal_length = fx
