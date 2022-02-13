@@ -40,11 +40,12 @@ import matplotlib.pyplot as plt
 dataset = Path('datasets/InLoc_like_RIO10/scene01/')  # change this if your dataset is somewhere else
 
 pairs = Path('pairs/graphVPR/rio_metric/') #'pairs/inloc/'
-loc_pairs = pairs / 'bruteforce40_samply_tiny_1.txt'  # bruteforce40_samply.txt # top 40 retrieved by NetVLAD #-minustop3rooms
+loc_pairs = pairs / 'bruteforce40_samply.txt'  # bruteforce40_samply.txt # top 40 retrieved by NetVLAD #-minustop3rooms
 
 outputs = Path('outputs/rio/')  # where everything will be saved
-results = outputs / 'RIO_hloc_superpoint+superglue_single_tiny1_skip10_dt130222-t1836.txt'  # the result file
-print("Starting localization on dt120222-t1248")
+dt_time = 'dt140222-t0234'
+results = outputs / Path('RIO_hloc_superpoint+superglue_skip10_' + dt_time + '.txt')  # the result file
+print(f"Starting localization on {dt_time}")
 
 # list the standard configurations available
 # print(f'Configs for feature extractors:\n{pformat(extract_features.confs)}')
