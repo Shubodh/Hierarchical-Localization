@@ -66,6 +66,37 @@ def pose_from_2d3dpair_inloc(dataset_dir, img_path, feature_file, skip_matches=2
 
     return ret, kpr, kp3d
 
+def pose_from_2d3dpair_rio(global_pcd, dataset_dir, img_path, feature_file, cam_intrinsics, skip_matches=20):
+    # global_pcd is 3D points in global frame (numpy array)
+    height, width = cv2.imread(str(dataset_dir  / img_path)).shape[:2]
+    global_pcd = (global_pcd.reshape((height, width, 3)))
+    # print(global_pcd.shape)
+
+    fx, fy, cx, cy = cam_intrinsics['fx'], cam_intrinsics['fy'], cam_intrinsics['cx'], cam_intrinsics['cy']
+
+    focal_length = fx
+    print("Note: using focal_length as fx, NOT fy.")
+    # cx = .5 * width 
+    # cy = .5 * height
+    # focal_length = 4032. * 28. / 36.
+    # print(img_path)
+    # print(feature_file[str(img_path)]['keypoints'].__array__())
+    # sys.exit()
+    # kpr = feature_file[img_path]['keypoints'].__array__()
+    kpr = feature_file[str(img_path)]['keypoints'].__array__()
+    # scan_r = loadmat(Path(dataset_dir, img_path + '.mat'))["XYZcut"]
+    kp3d, valid = interpolate_scan(global_pcd, kpr)
+    cfg = {
+        'model': 'SIMPLE_PINHOLE',
+        'width': width,
+        'height': height,
+        'params': [focal_length, cx, cy]
+    }
+    ret = pycolmap.absolute_pose_estimation(
+        kpr, kp3d, cfg, 48.00)
+    ret['cfg'] = cfg
+
+    return ret, kpr, kp3d
 
 # def old_o3d_params():
 #     focal_length_o3d = 617.47611289830479
@@ -347,12 +378,33 @@ def rio_main_single_pcd(frame_id, seq_id, dataset_dir, features, debug=False):
     # viz_with_array_inp(XYZ_full, RGB_full/255.0)
     print("TODO-Later-2: The above custom code for making pcd has color issue. Possibly some inversion. Correct later.")
     # print(XYZ_onepoint, (XYZ_full.shape))
-    o3d_pcd, XYZ_o3d, RGB_o3d = o3d_convert_depth_frame_to_pointcloud(rgb_file, depth_file, cam_intrinsics_dict, img_size)
+
+    # o3d_pcd, XYZ_o3d, RGB_o3d = o3d_convert_depth_frame_to_pointcloud(rgb_file, depth_file, cam_intrinsics_dict, img_size)
+    XYZ_o3d, RGB_o3d = convert_depth_frame_to_pointcloud(rgb_img, depth_img, cam_intrinsics_dict)
     if debug:
         viz_with_array_inp(XYZ_o3d, RGB_o3d, coords_bool=True)
 
     # taking to global frame
-    o3d_pcd.transform(RT_ctow)
+
+    # o3d_pcd = o3d.geometry.PointCloud()
+    # o3d_pcd.points = o3d.utility.Vector3dVector(XYZ_o3d)
+    # o3d_pcd.transform(RT_ctow)
+    # global_pcd = np.asarray(o3d_pcd.points)
+
+    global_pcd = (RT_ctow[:3, :3] @ XYZ_o3d.T) + RT_ctow[:3, 3].reshape((3,1))
+    global_pcd = global_pcd.T
+
+    # p3p pose estimation
+    dataset_dir_h5_format = Path("datasets/InLoc_like_RIO10/scene01/")
+    rgb_file_end    = Path('frame-{:06d}.color.jpg'.format(frame_id))
+    img_path_h5_format = Path("database/cutouts/") / rgb_file_end
+
+    feature_file = h5py.File(features, 'r')
+    ret, _, _ = pose_from_2d3dpair_rio(global_pcd, dataset_dir_h5_format, img_path_h5_format, feature_file, cam_intrinsics_dict)
+    print(frame_id)
+    print(f"1. Using P3P: rotation: {ret['qvec']} \n   translation: {ret['tvec']}")
+    print(f"2. Using GT: {RT}")
+    sys.exit()
 
     return o3d_pcd, XYZ_o3d, RGB_o3d
 
@@ -361,7 +413,7 @@ if __name__ == '__main__':
     # --dataset_dir ./datasets/inloc_small/ # This would be path of where `cutouts_imageonly` resides. 
     # --features ./outputs/inloc_small/feats-superpoint-n4096-r1600.h5 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_dir', type=Path, required=True)
+    parser.add_argument('--dataset_dir', type=Path, required=False)
     parser.add_argument('--features', type=Path, required=True)
     parser.add_argument('--debug', dest='debug', default=False, action='store_true') # Just provide "--debug" on command line if you want to debug. Don't set it to anything.
     args = parser.parse_args()
@@ -373,9 +425,10 @@ if __name__ == '__main__':
     # CODE FOR SEQ_ID as 01
     seq_id = "01" 
     frame_ids_full = list(np.arange(0, 3000, 200)) #200 # 60
-    frame_ids_small = [50, 131, 4318]
+    # frame_ids_small = [3, 1820, 4262, 4307]
+    frame_ids_small = [1820]
 
-    frame_ids = frame_ids_full
+    frame_ids = frame_ids_small
 
     single_pcds = []
     for frame_id in frame_ids:
@@ -384,20 +437,20 @@ if __name__ == '__main__':
     merged_pcd = merged_pcd_from_single_pcds(single_pcds)
     viz_with_array_inp(np.asarray(merged_pcd.points), np.asarray(merged_pcd.colors), coords_bool=True)
 
-    # CODE FOR SEQ_ID as 02
-    seq_id = "02" 
-    frame_ids_full = list(np.arange(0, 2000, 200)) #200 # 60
-    frame_ids_small = [50, 131, 4318]
+    # # CODE FOR SEQ_ID as 02
+    # seq_id = "02" 
+    # frame_ids_full = list(np.arange(0, 2000, 200)) #200 # 60
+    # frame_ids_small = [50, 131, 4318]
 
-    frame_ids = frame_ids_full
+    # frame_ids = frame_ids_full
 
-    single_pcds = []
-    for frame_id in frame_ids:
-        o3d_pcd, XYZ_o3d, RGB_o3d = rio_main_single_pcd(frame_id, seq_id, **args.__dict__)
-        single_pcds.append(o3d_pcd)
-    merged_pcd_2 = merged_pcd_from_single_pcds(single_pcds)
-    viz_with_array_inp(np.asarray(merged_pcd_2.points), np.asarray(merged_pcd_2.colors), coords_bool=True)
+    # single_pcds = []
+    # for frame_id in frame_ids:
+    #     o3d_pcd, XYZ_o3d, RGB_o3d = rio_main_single_pcd(frame_id, seq_id, **args.__dict__)
+    #     single_pcds.append(o3d_pcd)
+    # merged_pcd_2 = merged_pcd_from_single_pcds(single_pcds)
+    # viz_with_array_inp(np.asarray(merged_pcd_2.points), np.asarray(merged_pcd_2.colors), coords_bool=True)
 
-    # MERGING SEQ_ID 01 and 02
-    merged_seq_pcd = merged_pcd_from_single_pcds([merged_pcd, merged_pcd_2])
-    viz_with_array_inp(np.asarray(merged_seq_pcd.points), np.asarray(merged_seq_pcd.colors), coords_bool=True)
+    # # MERGING SEQ_ID 01 and 02
+    # merged_seq_pcd = merged_pcd_from_single_pcds([merged_pcd, merged_pcd_2])
+    # viz_with_array_inp(np.asarray(merged_seq_pcd.points), np.asarray(merged_seq_pcd.colors), coords_bool=True)

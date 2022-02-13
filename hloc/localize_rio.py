@@ -4,6 +4,7 @@ import numpy as np
 import open3d as o3d
 import h5py
 from scipy.io import loadmat
+import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
 import logging
@@ -17,12 +18,15 @@ from scipy.spatial.transform import Rotation as R
 import json
 
 
-from .utils.parsers import parse_retrieval, names_to_pair
-from .utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint, load_depth_to_scan
+from .utils.open3d_helper import custom_draw_geometry, load_view_point, viz_with_array_inp
+from .utils.camera_projection_helper import convert_depth_frame_to_pointcloud
+from .utils.parsers import parse_retrieval, names_to_pair, parse_pose_file_RIO, parse_camera_file_RIO
+from .utils.io import read_image
+from .utils.viz import plot_images, plot_matches
 
-# above gives: ImportError: attempted relative import with no known parent package
-# from utils.parsers import parse_retrieval, names_to_pair
-# from utils.open3d_helper import custom_draw_geometry, load_view_point, synthesize_img_given_viewpoint
+# sys.path.append('../')
+# from p3p_view_synthesis_inverse_warping import viz_entire_room_by_registering
+
 
 def interpolate_scan(scan, kp):
     h, w, c = scan.shape
@@ -70,133 +74,63 @@ def get_scan_pose(dataset_dir, rpath):
 
     return P_after_GICP
 
+def output_global_scan_rio(dataset_dir, r):
+    full_prefix_path = dataset_dir / r.parents[0]
+    r_stem = r.stem.replace("color", "")
 
-def viz_entire_room_file(dataset_dir, downsample=True):
-    # room level pcds are never used in this hloc pipeline
-    mat_file = (dataset_dir / "scans/DUC1/DUC_scan_024.ptx.mat")
-    print(mat_file)
+    camera_file = Path(full_prefix_path, 'camera.yaml')
+    pose_file   = Path(full_prefix_path, r_stem + 'pose.txt')
+    rgb_file    = Path(full_prefix_path, r_stem + 'color.jpg')
+    depth_file  = Path(full_prefix_path, r_stem + 'rendered.depth.png')
 
-    xyz_file  = loadmat(Path(mat_file))#["XYZcut"]
-    #print(xyz_file["A"])
-    #print(xyz_file.keys())
-    sys.exit()
-    rgb_file = loadmat(Path(mat_file))["RGBcut"]
+    assert camera_file.exists(), camera_file
+    assert   pose_file.exists(), pose_file  
+    assert    rgb_file.exists(), rgb_file   
+    assert  depth_file.exists(), depth_file 
 
-    xyz_sp = (xyz_file.shape)
+    rgb_img = read_image(rgb_file)
+    depth_raw = o3d.io.read_image(str(depth_file))
+    depth_img = np.asarray(depth_raw)
 
-    xyz_file = (xyz_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
-    rgb_file = (rgb_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
+    K, img_size =  parse_camera_file_RIO(camera_file) 
+    RT, RT_ctow = parse_pose_file_RIO(pose_file)
+    RT_wtoc = RT
+    # print(f"H & W: {img_size}, \n K:\n{K}, \n tf w to c:\n{RT} \n tf c to w:\n{RT_ctow} ")
+    height, width = img_size
+    cam_intrinsics_dict = {'fx':K[0,0] , 'fy':K[1,1] , 'cx':K[0,2] , 'cy':K[1,2] }
 
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(xyz_file)
-    pcd.colors = o3d.utility.Vector3dVector(rgb_file/255.0)
+    XYZ, RGB = convert_depth_frame_to_pointcloud(rgb_img, depth_img, cam_intrinsics_dict)
+    global_pcd = (RT_ctow[:3, :3] @ XYZ.T) + RT_ctow[:3, 3].reshape((3,1))
+    global_pcd = global_pcd.T
+    global_pcd = (global_pcd.reshape((height, width, 3)))
 
-    
+    return global_pcd 
 
-    # Downsampling for quicker visualization. Not needed if less pcds.
-    print(f"len(pcd.points): {len(pcd.points)}")
-    if downsample == True:
-        pcd_final = pcd.voxel_down_sample(voxel_size=0.01)  
-        print(f"After downsampling: {len(pcd.points)}")
+def cam_intrinsics_from_ref_img(dataset_dir, r):
+    full_prefix_path = dataset_dir / r.parents[0]
+    r_stem = r.stem.replace("color", "")
 
-    mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
-    o3d.visualization.draw_geometries([pcd_final, mesh])
-    
+    camera_file = Path(full_prefix_path, 'camera.yaml')
+    assert camera_file.exists(), camera_file
 
-def viz_entire_room_by_registering(dataset_dir, r, img_path = None, p3p_pose = None, downsample = False):
-    # Load all the .jpg.mat files aka scan points of a particular room and visualize them
-    room_no = "024"#024, 025, 005, 084, 010
-    if img_path is None:
-        room_path_str =str(dataset_dir) + "/" + "cutouts_imageonly/DUC1/" + room_no + "/"
-        room_path = Path(room_path_str)  
-        print(f"room_path: {room_path}")
-        mat_files = sorted(list(room_path.glob('*.jpg.mat')))
-    #mat_files = [Path('/media/shubodh/DATA/OneDrive/rrc_projects/2021/github_general_projects/p3p_view-synthesis_inverse-warping/sample_data/inloc_data/cutouts_imageonly/DUC1/024/DUC_cutout_024_330_0.jpg.mat')]
-    else:
-        merge_all_room_pcd = True
-        if merge_all_room_pcd:
-            room_path_str =str(dataset_dir) + "/" + "cutouts_imageonly/DUC1/" + room_no + "/"
-            room_path = Path(room_path_str)  
-            print(f"room_path: {room_path}")
-            mat_files = sorted(list(room_path.glob('*.jpg.mat')))
-        else:
-            str_path = str(dataset_dir) + "/" + str(img_path) + ".mat"
-            mat_files = [Path(str_path)]
+    K, img_size =  parse_camera_file_RIO(camera_file) 
+    height, width = img_size
+    cam_intrinsics_dict = {'fx':K[0,0] , 'fy':K[1,1] , 'cx':K[0,2] , 'cy':K[1,2] }
 
-    mat_files_small = mat_files#[:6]#6
-
-    pcds = []
-
-    for mat_file in mat_files_small:
-        print(mat_file)
-        #print(loadmat(Path(mat_file)))
-
-        xyz_file  = loadmat(Path(mat_file))["XYZcut"]
-        rgb_file = loadmat(Path(mat_file))["RGBcut"]
-
-        xyz_sp = (xyz_file.shape)
-
-        xyz_file = (xyz_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
-        rgb_file = (rgb_file.reshape((xyz_sp[0]*xyz_sp[1] ,3)))
-
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(xyz_file)
-        pcd.colors = o3d.utility.Vector3dVector(rgb_file/255.0)
-
-        pcds.append(pcd)
-    
-    pcd_final = o3d.geometry.PointCloud()
-    for pcd_each in pcds:
-        pcd_final += pcd_each
-    
-
-    # Downsampling for quicker visualization. Not needed if less pcds.
-    print(f"len(pcd.points): {len(pcd_final.points)}")
-    if downsample == True:
-        print(f"Before downsampling: {len(pcd_final.points)}")
-        pcd_final = pcd_final.voxel_down_sample(voxel_size=0.002) #0.01
-        print(f"After downsampling: {len(pcd_final.points)}")
-
-    coord_mesh = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1)
-    coord_pcd =  coord_mesh.sample_points_uniformly(number_of_points=500)
-    #print(mesh.get_center())
-    base_path = "/home/shubodh/hdd1/Shubodh/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/"
-    if p3p_pose is None:
-        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/T_" + room_no + "_l1_blue_issue.json"
-        #filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/" + room_no + "_T1.json"
-        #custom_draw_geometry(pcd_final, coord_mesh, filename, show_coord=True)
-    else:
-        filename = base_path + "graphVPR/ideas_SG/place-graphVPR/rand_json/p3p_" + room_no + ".json"
-  
-        #vpt_json = json.load(open(filename))
-        #vpt_json['extrinsic'] = p3p_pose['extrinsic']
-        #vpt_json['intrinsic']['intrinsic_matrix'] = p3p_pose['intrinsic']['intrinsic_matrix']
-        #print(vpt_json)
-        json_object = json.dumps(p3p_pose, indent = 4)
-        with open(filename, "w") as p3p_pose_file:
-            p3p_pose_file.write(json_object)
-    
-    load_view_point(pcd_final, filename, custom_inloc_viewer=True)
-    #synthesize_img_given_viewpoint(pcd_final, filename)
-
-
-
-    sys.exit()
-#    scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
-#    mkp3d, valid = interpolate_scan(scan_r, mkpr)
-#    Tr = get_scan_pose(dataset_dir, r)
-#    mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
-#    print("DEBUG")
-
-
+    fx, fy, cx, cy = cam_intrinsics_dict['fx'],cam_intrinsics_dict['fy'],cam_intrinsics_dict['cx'],cam_intrinsics_dict['cy']
+    return fx, fy, cx, cy, height, width
 
 def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
                       skip=None):
-    height, width = cv2.imread(str(dataset_dir / q)).shape[:2]
-    #print(width, height)
-    cx = .5 * width 
-    cy = .5 * height
-    focal_length = 4032. * 28. / 36.
+    # height, width = cv2.imread(str(dataset_dir / q)).shape[:2]
+    # #print(width, height)
+    # cx = .5 * width 
+    # cy = .5 * height
+    # focal_length = 4032. * 28. / 36.
+    fx, fy, cx, cy, height, width = cam_intrinsics_from_ref_img(Path(dataset_dir), Path(retrieved[0]))
+    print(fx, fy, cx, cy, height, width)
+    print("Note: using focal_length as fx, NOT fy.")
+    focal_length = fx
 
     all_mkpq = []
     all_mkpr = []
@@ -206,28 +140,35 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
     num_matches = 0
 
     for i, r in enumerate(retrieved):
-        # print(q,r)
         kpr = feature_file[r]['keypoints'].__array__()
         pair = names_to_pair(q, r)
         m = match_file[pair]['matches0'].__array__()
         v = (m > -1)
 
+        print(q,r, np.count_nonzero(v))
         if skip and (np.count_nonzero(v) < skip):
             continue
 
         mkpq, mkpr = kpq[v], kpr[m[v]]
         num_matches += len(mkpq)
 
+        # VISUALIZATION DEBUG:
+        # plot_images([read_image(dataset_dir / q), read_image(dataset_dir / r)])
+        # plot_matches(mkpq, mkpr)
+        # plt.show()
+        # print(mkpq.shape, mkpr.shape)
+        # sys.exit()
 
-        print('sys exit')
-        sys.exit()
+
+
         # viz_entire_room_by_registering(dataset_dir, r)
-        scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
+        # scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
+        scan_r = output_global_scan_rio(Path(dataset_dir), Path(r))
         # Note that width height of query different from reference
         #print(f"DEBUG 1:  width, height - {scan_r.shape, width, height}")
         mkp3d, valid = interpolate_scan(scan_r, mkpr)
-        Tr = get_scan_pose(dataset_dir, r)
-        mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
+        #### Tr = get_scan_pose(dataset_dir, r) #Already in global frame. This was needed for InLoc to take it from room -> global (there were 3 there: local, room, global)
+        #### mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
 
         all_mkpq.append(mkpq[valid])
         all_mkpr.append(mkpr[valid])
@@ -251,135 +192,6 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
     return ret, all_mkpq, all_mkpr, all_mkp3d, all_indices, num_matches
 
 
-
-def pose_from_cluster_mp3d(dataset_dir, q, retrieved, feature_file, match_file,
-                      skip=None):
-    height, width = cv2.imread(str(dataset_dir / q)).shape[:2]
-    fx, fy, cx, cy, width, height = 960, 960, 960.5, 540.5, 1920, 1080
-    focal_length = fx
-    #cx = .5 * width #TO-CHECK-1: Should cx be exactly half of width? Above it's not.
-    #cy = .5 * height
-    #focal_length = 4032. * 28. / 36.
-
-
-    all_mkpq = []
-    all_mkpr = []
-    all_mkp3d = []
-    all_indices = []
-    kpq = feature_file[q]['keypoints'].__array__()
-    num_matches = 0
-
-    for i, r in enumerate(retrieved):
-        kpr = feature_file[r]['keypoints'].__array__()
-        pair = names_to_pair(q, r)
-        m = match_file[pair]['matches0'].__array__()
-        v = (m > -1)
-
-        if skip and (np.count_nonzero(v) < skip):
-            continue
-
-        mkpq, mkpr = kpq[v], kpr[m[v]]
-        num_matches += len(mkpq)
-
-        #viz_entire_room_by_registering(dataset_dir, r)
-        #scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
-        depth_base_path = Path('/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/x-view-scratch/data_collection/x-view/mp3d/')
-        r_split = re.split('/|.png', str(r))
-        im_split = re.split('_', r_split[2])
-        env_name, room_name, img_id = im_split[3], im_split[4], im_split[0]
-        depth_fin_path = env_name + "/rooms/" + room_name + "/raw_data/" +  img_id + "_depth.png"
-        depth_full_path = depth_base_path / depth_fin_path
-        #samply_dep = Path('/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/datasets/graphVPR/room_level_localization_small/0_mp3d_8WUmhLawc2A/references/bathroom1/8_rgb_mp3d_8WUmhLawc2A_bathroom1_depth.png')
-        file_json = depth_base_path / (env_name + "/rooms/" + room_name + "/poses_cleaned.json")
-        with open(file_json, 'r') as f:
-            poses = json.load(f)
-        # pose_local_to_global_full
-        rot = np.array(poses['rotation'][int(img_id)]).astype(np.float64)
-        pos = np.array(poses['position'][int(img_id)]).astype(np.float64)
-        #print("DeBuG")
-        #pos, rot = lines[int(img_id)*2], lines[int(img_id)*2 + 1] #rot in quat format: x, y, z, w
-        #print(im_split, pos, rot)
-        #sys.exit()
-        scan_r = load_depth_to_scan(depth_full_path, pos, rot)
-        #print(f"DEBUG 3 {scan_r.shape}")
-        #sys.exit()
-        mkp3d, valid = interpolate_scan(scan_r, mkpr)
-        #Tr = get_scan_pose(dataset_dir, r)
-        #mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
-
-        all_mkpq.append(mkpq[valid])
-        all_mkpr.append(mkpr[valid])
-        all_mkp3d.append(mkp3d[valid])
-        all_indices.append(np.full(np.count_nonzero(valid), i))
-
-    all_mkpq = np.concatenate(all_mkpq, 0)
-    all_mkpr = np.concatenate(all_mkpr, 0)
-    all_mkp3d = np.concatenate(all_mkp3d, 0)
-    all_indices = np.concatenate(all_indices, 0)
-
-    cfg = {
-        'model': 'SIMPLE_PINHOLE',
-        'width': width,
-        'height': height,
-        'params': [focal_length, cx, cy]
-    }
-    ret = pycolmap.absolute_pose_estimation(
-        all_mkpq, all_mkp3d, cfg, 48.00)
-    ret['cfg'] = cfg
-    return ret, all_mkpq, all_mkpr, all_mkp3d, all_indices, num_matches
-
-def kp_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
-                      skip=None):
-    height, width = cv2.imread(str(dataset_dir / q)).shape[:2]
-    cx = .5 * width
-    cy = .5 * height
-    #focal_length = 4032. * 28. / 36.
-
-    all_mkpq = []
-    all_mkpr = []
-    #all_mkp3d = []
-    all_indices = []
-    kpq = feature_file[q]['keypoints'].__array__()
-    num_matches = 0
-
-    for i, r in enumerate(retrieved):
-        kpr = feature_file[r]['keypoints'].__array__()
-        pair = names_to_pair(q, r)
-        m = match_file[pair]['matches0'].__array__()
-        v = (m > -1)
-
-        if skip and (np.count_nonzero(v) < skip):
-            continue
-
-        mkpq, mkpr = kpq[v], kpr[m[v]]
-        num_matches += len(mkpq)
-
-        scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
-        mkp3d, valid = interpolate_scan(scan_r, mkpr)
-        #print(f"valid shape {valid.shape}, mkpq {kpq.shape} {kpr.shape}")
-        #Tr = get_scan_pose(dataset_dir, r)
-        #mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
-
-        all_mkpq.append(mkpq[valid])
-        all_mkpr.append(mkpr[valid])
-        #all_mkp3d.append(mkp3d[valid])
-        all_indices.append(np.full(np.count_nonzero(valid), i))
-
-    all_mkpq = np.concatenate(all_mkpq, 0)
-    all_mkpr = np.concatenate(all_mkpr, 0)
-    #all_mkp3d = np.concatenate(all_mkp3d, 0)
-    all_indices = np.concatenate(all_indices, 0)
-
-    #cfg = {
-    #    'model': 'SIMPLE_PINHOLE',
-    #    'width': width,
-    #    'height': height,
-    #    'params': [focal_length, cx, cy]
-    #}
-    #ret = pycolmap.absolute_pose_estimation(
-    #    all_mkpq, all_mkp3d, cfg, 48.00)
-    #ret['cfg'] = cfg
-    return all_mkpq, all_mkpr, all_indices, num_matches
 
 
 def main(dataset_dir, retrieval, features, matches, results,
