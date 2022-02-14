@@ -43,8 +43,8 @@ pairs = Path('pairs/graphVPR/rio_metric/') #'pairs/inloc/'
 loc_pairs = pairs / 'bruteforce40_samply.txt'  # bruteforce40_samply.txt # top 40 retrieved by NetVLAD #-minustop3rooms
 
 outputs = Path('outputs/rio/')  # where everything will be saved
-dt_time = 'dt140222-t0234'
-results = outputs / Path('RIO_hloc_superpoint+superglue_skip10_' + dt_time + '.txt')  # the result file
+dt_time = 'dt140222-t0540'
+results = outputs / Path('RIO_hloc_sift+NN_mutual_skip10_' + dt_time + '.txt')  # the result file
 print(f"Starting localization on {dt_time}")
 
 # list the standard configurations available
@@ -54,8 +54,8 @@ print(f"Starting localization on {dt_time}")
 
 # pick one of the configurations for extraction and matching
 # you can also simply write your own here!
-feature_conf = extract_features.confs['superpoint_inloc']
-matcher_conf = match_features.confs['superglue']
+feature_conf = extract_features.confs['sift'] # superpoint_inloc
+matcher_conf = match_features.confs['NN-mutual'] # superglue
 
 
 # ## Extract local features for database and query images
