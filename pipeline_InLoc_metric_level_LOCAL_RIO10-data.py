@@ -43,8 +43,14 @@ pairs = Path('pairs/graphVPR/rio_metric/') #'pairs/inloc/'
 loc_pairs = pairs / 'bruteforce40_samply.txt'  # bruteforce40_samply.txt # top 40 retrieved by NetVLAD #-minustop3rooms
 
 outputs = Path('outputs/rio/')  # where everything will be saved
-dt_time = 'dt140222-t0540'
-results = outputs / Path('RIO_hloc_sift+NN_mutual_skip10_' + dt_time + '.txt')  # the result file
+
+# Set config
+dt_time = 'dt150222-t0112'
+feature_name  = 'd2net-ss'  # sift, superpoint_inloc
+matcher_name  = 'superglue' # NN-mutual
+skip_no = 10
+
+results = outputs / Path('RIO_hloc_' + feature_name +'+' + matcher_name + '_skip' + str(skip_no) + '_' + dt_time + '.txt')  # the result file
 print(f"Starting localization on {dt_time}")
 
 # list the standard configurations available
@@ -54,8 +60,8 @@ print(f"Starting localization on {dt_time}")
 
 # pick one of the configurations for extraction and matching
 # you can also simply write your own here!
-feature_conf = extract_features.confs['sift'] # superpoint_inloc
-matcher_conf = match_features.confs['NN-mutual'] # superglue
+feature_conf = extract_features.confs[feature_name] # superpoint_inloc, d2net-ss
+matcher_conf = match_features.confs[matcher_name] # superglue
 
 
 # ## Extract local features for database and query images
@@ -71,7 +77,7 @@ match_path = match_features.main(matcher_conf, loc_pairs, feature_conf['output']
 
 localize_rio.main(
     dataset, loc_pairs, feature_path, match_path, results,
-    skip_matches=10) #20. 10 is giving error currently, for 1 query, unable to find any matches > 20  # skip database images with too few matches
+    skip_matches=skip_no) #20. 10 is giving error currently, for 1 query, unable to find any matches > 20  # skip database images with too few matches
 
 
 # ## Visualization
