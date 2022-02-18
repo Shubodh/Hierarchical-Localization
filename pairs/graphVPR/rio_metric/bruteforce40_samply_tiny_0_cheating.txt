@@ -39,3 +39,4 @@ query/frame-001575.color.jpg database/cutouts/frame-001827.color.jpg
 query/frame-001575.color.jpg database/cutouts/frame-000007.color.jpg
 query/frame-001575.color.jpg database/cutouts/frame-004266.color.jpg
 query/frame-001575.color.jpg database/cutouts/frame-001575.color.jpg
+query/frame-001575.color.jpg database/cutouts/frame-000194.color.jpg

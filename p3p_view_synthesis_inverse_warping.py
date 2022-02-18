@@ -75,7 +75,6 @@ def pose_from_2d3dpair_rio(global_pcd, dataset_dir, img_path, feature_file, cam_
     fx, fy, cx, cy = cam_intrinsics['fx'], cam_intrinsics['fy'], cam_intrinsics['cx'], cam_intrinsics['cy']
 
     focal_length = fx
-    print("Note: using focal_length as fx, NOT fy.")
     # cx = .5 * width 
     # cy = .5 * height
     # focal_length = 4032. * 28. / 36.
@@ -86,12 +85,20 @@ def pose_from_2d3dpair_rio(global_pcd, dataset_dir, img_path, feature_file, cam_
     kpr = feature_file[str(img_path)]['keypoints'].__array__()
     # scan_r = loadmat(Path(dataset_dir, img_path + '.mat'))["XYZcut"]
     kp3d, valid = interpolate_scan(global_pcd, kpr)
+    print(f"num_kpr {len(kpr)}")
+    print("Note: using focal_length as fx, NOT fy.")
     cfg = {
-        'model': 'SIMPLE_PINHOLE',
+        'model': 'SIMPLE_PINHOLE', #changed from SIMPLE_PINHOLE to PINHOLE
         'width': width,
         'height': height,
         'params': [focal_length, cx, cy]
     }
+    # cfg = {
+    #     'model': 'PINHOLE', # PINHOLE, Also note: OPENCV uses distortion as well
+    #     'width': width,
+    #     'height': height,
+    #     'params': [fx, fy, cx, cy]
+    # }
     ret = pycolmap.absolute_pose_estimation(
         kpr, kp3d, cfg, 48.00)
     ret['cfg'] = cfg
@@ -354,9 +361,9 @@ def rio_main_single_pcd(frame_id, seq_id, dataset_dir, features, debug=False):
         # plot_images(plot_img_list)
         # plt.show()
         print("Showing room mesh model now:")
-        mesh_model = o3d.io.read_triangle_mesh(str(mesh_file), True)
-        o3d.visualization.draw_geometries([mesh_model])
-        sys.exit()
+        # mesh_model = o3d.io.read_triangle_mesh(str(mesh_file), True)
+        # o3d.visualization.draw_geometries([mesh_model])
+        # sys.exit()
 
     K, img_size =  parse_camera_file_RIO(camera_file) 
     RT, RT_ctow = parse_pose_file_RIO(pose_file)
@@ -380,6 +387,7 @@ def rio_main_single_pcd(frame_id, seq_id, dataset_dir, features, debug=False):
     # print(XYZ_onepoint, (XYZ_full.shape))
 
     # o3d_pcd, XYZ_o3d, RGB_o3d = o3d_convert_depth_frame_to_pointcloud(rgb_file, depth_file, cam_intrinsics_dict, img_size)
+    o3d_pcd, _, _ = o3d_convert_depth_frame_to_pointcloud(rgb_file, depth_file, cam_intrinsics_dict, img_size)
     XYZ_o3d, RGB_o3d = convert_depth_frame_to_pointcloud(rgb_img, depth_img, cam_intrinsics_dict)
     if debug:
         viz_with_array_inp(XYZ_o3d, RGB_o3d, coords_bool=True)
@@ -404,17 +412,22 @@ def rio_main_single_pcd(frame_id, seq_id, dataset_dir, features, debug=False):
     print(frame_id)
     print(f"1. Using P3P: rotation: {ret['qvec']} \n   translation: {ret['tvec']}")
     print(f"2. Using GT: {RT}")
-    sys.exit()
+    # print("sys.exiting(1)")
+    # sys.exit()
 
     return o3d_pcd, XYZ_o3d, RGB_o3d
 
+
 if __name__ == '__main__':
     # Example arguments:
+    # For RIO10
+    # --features ./outputs/rio/feats-superpoint-n4096-r1600.h5 (--debug)
+    # For InLoc
     # --dataset_dir ./datasets/inloc_small/ # This would be path of where `cutouts_imageonly` resides. 
     # --features ./outputs/inloc_small/feats-superpoint-n4096-r1600.h5 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--dataset_dir', type=Path, required=False)
     parser.add_argument('--features', type=Path, required=True)
+    parser.add_argument('--dataset_dir', type=Path, required=False)
     parser.add_argument('--debug', dest='debug', default=False, action='store_true') # Just provide "--debug" on command line if you want to debug. Don't set it to anything.
     args = parser.parse_args()
 
@@ -426,12 +439,13 @@ if __name__ == '__main__':
     seq_id = "01" 
     frame_ids_full = list(np.arange(0, 3000, 200)) #200 # 60
     # frame_ids_small = [3, 1820, 4262, 4307]
-    frame_ids_small = [1820]
+    frame_ids_small = [194] # 3, 194, 1820
 
     frame_ids = frame_ids_small
 
     single_pcds = []
     for frame_id in frame_ids:
+        print(f"frame_id: {frame_id} in 01_{seq_id}")
         o3d_pcd, XYZ_o3d, RGB_o3d = rio_main_single_pcd(frame_id, seq_id, **args.__dict__)
         single_pcds.append(o3d_pcd)
     merged_pcd = merged_pcd_from_single_pcds(single_pcds)

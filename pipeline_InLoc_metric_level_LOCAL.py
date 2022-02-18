@@ -13,6 +13,8 @@ import sys
 
 from hloc import extract_features, match_features, localize_inloc, visualization
 
+import matplotlib.pyplot as plt
+
 
 # In[2]:
 
@@ -94,6 +96,7 @@ localize_inloc.main(
 
 
 visualization.visualize_loc(results, dataset, n=1, top_k_db=1, seed=2)
+plt.show()
 
 
 # In[ ]:

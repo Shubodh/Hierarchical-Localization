@@ -25,6 +25,19 @@ def parse_image_list(path, with_intrinsics=False):
     logging.info(f'Imported {len(images)} images from {path.name}')
     return images
 
+def parse_poses_from_file(path):
+    poses = []
+    with open(path, 'r') as f:
+        for line in f:
+            line = line.strip('\n')
+            if len(line) == 0 or line[0] == '#':
+                continue
+            name, *data = line.split()
+            poses.append((name, data))
+
+    assert len(poses) > 0
+    logging.info(f'Imported {len(poses)} poses from {path.name}')
+    return poses
 
 def parse_image_lists(paths, with_intrinsics=False):
     images = []

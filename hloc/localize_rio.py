@@ -103,6 +103,9 @@ def output_global_scan_rio(dataset_dir, r):
     global_pcd = (RT_ctow[:3, :3] @ XYZ.T) + RT_ctow[:3, 3].reshape((3,1))
     global_pcd = global_pcd.T
     global_pcd = (global_pcd.reshape((height, width, 3)))
+    debug = False
+    if debug:
+        viz_with_array_inp(XYZ, RGB, coords_bool=True)
 
     return global_pcd 
 
@@ -129,7 +132,6 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
     # focal_length = 4032. * 28. / 36.
     fx, fy, cx, cy, height, width = cam_intrinsics_from_query_img(Path(dataset_dir), Path(q))
     print(fx, fy, cx, cy, height, width)
-    print("Note: using focal_length as fx, NOT fy.")
     focal_length = fx
 
     all_mkpq = []
@@ -145,7 +147,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         m = match_file[pair]['matches0'].__array__()
         v = (m > -1)
 
-        print(q,r, np.count_nonzero(v))
+        print(f"No of correspondences: {q,r, np.count_nonzero(v)}")
         if skip and (np.count_nonzero(v) < skip):
             continue
 
@@ -180,11 +182,18 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
     all_mkp3d = np.concatenate(all_mkp3d, 0)
     all_indices = np.concatenate(all_indices, 0)
 
+    # cfg = {
+    #     'model': 'SIMPLE_PINHOLE',
+    #     'width': width,
+    #     'height': height,
+    #     'params': [focal_length, cx, cy]
+    # }
+    print("Note: using focal_length as fx, NOT fy. Also NOT using distortion params. (pycolmap allows it)")
     cfg = {
-        'model': 'SIMPLE_PINHOLE',
+        'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
         'width': width,
         'height': height,
-        'params': [focal_length, cx, cy]
+        'params': [fx, fy, cx, cy]
     }
     ret = pycolmap.absolute_pose_estimation(
         all_mkpq, all_mkp3d, cfg, 48.00)
