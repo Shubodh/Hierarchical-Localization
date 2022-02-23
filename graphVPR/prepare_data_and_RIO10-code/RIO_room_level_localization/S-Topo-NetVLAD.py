@@ -19,6 +19,7 @@ import sys
 from utils import read_image
 from matching import getMatchInds, getMatchIndsTfidf, getMatchIndsBinary, getMatchIndsBinaryTfidf
 from get_netvlad_pretrained import get_netvlad_pretrained, ENCODER_DIM, NUM_CLUSTERS
+from RIO10_dataset import get_RIO10_data
 
 def netvlad_model(num_clusters=32):
     # lyakaap's code: https://github.com/Shubodh/NetVLAD-pytorch
@@ -96,33 +97,23 @@ def topoNetVLAD(model, base_path, base_rooms, dim_descriptor_vlad, num_clusters,
     featVect_tor = torch.zeros((len(base_rooms), dim_descriptor_vlad)).cuda()
     num_images_per_room = []
     for i_room, base_room in enumerate(base_rooms):
-        if base_path == sample_path:
-            full_path_str = base_path + base_room
-        else:
-            full_path_str= base_path+ "scene"+ base_room[:2]+"/seq" +base_room[:2]+"/seq"+ base_room+ "/"
-        full_path = Path(full_path_str)
-        img_files_all = sorted(list(full_path.glob("*color.jpg")))
-        img_files = img_files_all[::sampling_freq] # every 1000th image
-        print(f"No. of sampling images in this {base_room} room: {len(img_files)}")
-        num_images_per_room.append(len(img_files))
+        # if base_path == sample_path:
+        #     full_path_str = base_path + base_room
+        # else:
+        #     full_path_str= base_path+ "scene"+ base_room[:2]+"/seq" +base_room[:2]+"/seq"+ base_room+ "/"
+        # full_path = Path(full_path_str)
+        # img_files_all = sorted(list(full_path.glob("*color.jpg")))
+        # img_files = img_files_all[::sampling_freq] # every 1000th image
+        dataloader, num_images = get_RIO10_data(base_path, sample_path, base_room, sampling_freq, device, batch_size)
+        print(f"No. of sampling images in this {base_room} room: {num_images}")
+        num_images_per_room.append(num_images)
         #print(f" and their names: {img_files}")
-        x_all = []
-        for i_img, img in enumerate(img_files):
-            rgb = read_image(img)
-            rgb = rgb.astype(np.float32)
-            rgb_np = np.moveaxis(np.array(rgb), -1, 0)
-            rgb_np = rgb_np[np.newaxis, :]
-            x = torch.from_numpy(rgb_np).float().cuda()
-            x_all.append(x)
-            if (i_img+1) % batch_size == 0:
-                #x_all_batch = torch.cat(x_all[i_img+1 - batch_size:i_img+1], 0) # if x_all=[] is commented
-                x_all_batch = torch.cat(x_all, 0).to(device) # if below x_all=[] is uncommented
-                output = model.encoder(x_all_batch)
-                output = model.pool(output)
-                # print('OUTPUT SHAPE', output.size(), flush=True)
-                featVect_tor[i_room] = featVect_tor[i_room] + torch.sum(output, 0)
-                x_all = []
-        #print("CURRENTLY HERE. NOw only sampling of images remaining")
+
+        for batch in dataloader:
+            output = model.encoder(batch)
+            output = model.pool(output)
+            featVect_tor[i_room] = featVect_tor[i_room] + torch.sum(output, 0)
+    
     if norm_bool:
         torch.set_printoptions(profile="full")
         #print(f"Before norm: {featVect_tor[0:3,:20]}")
