@@ -4,7 +4,7 @@ import open3d as o3d
 import json
 import sys
 
-# from open3d_helper import viz_with_array_inp
+# from .open3d_helper import viz_with_array_inp
 
 
 def get_depth_at_pixel(depth_frame, pixel_x, pixel_y):

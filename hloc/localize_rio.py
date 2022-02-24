@@ -75,6 +75,8 @@ def get_scan_pose(dataset_dir, rpath):
     return P_after_GICP
 
 def output_global_scan_rio(dataset_dir, r):
+    #dataset_dir: datasets/InLoc_like_RIO10/scene01_synth 
+    #r: database/cutouts/frame-001820.color.jpg
     full_prefix_path = dataset_dir / r.parents[0]
     r_stem = r.stem.replace("color", "")
 

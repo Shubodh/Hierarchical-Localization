@@ -2,7 +2,7 @@ import cv2
 import h5py
 import logging
 
-from parsers import parse_poses_from_file
+from .parsers import parse_poses_from_file
 
 def read_image(path, grayscale=False):
     if grayscale:
@@ -16,6 +16,24 @@ def read_image(path, grayscale=False):
         image = image[:, :, ::-1]  # BGR to RGB
     return image
 
+def read_depth_image_given_colorimg_path(dataset_dir, r):
+    """
+    This function replaces color img path with depth img for same img id.
+    dataset_dir: datasets/InLoc_like_RIO10/scene01_synth 
+    r: database/cutouts/frame-001820.color.jpg
+    """
+    full_prefix_path = dataset_dir / r.parents[0]
+    r_stem = r.stem.replace("color", "")
+    depth_file  = Path(full_prefix_path, r_stem + 'rendered.depth.png')
+    assert  depth_file.exists(), depth_file 
+
+    # Using Open3D
+    depth_raw = o3d.io.read_image(str(depth_file))
+    depth_img = np.asarray(depth_raw)
+    
+    # Using cv2 ? matplotlib?
+
+    return depth_img
 
 def list_h5_names(path):
     names = []
@@ -63,3 +81,12 @@ def convert_pose_file_format_wtoc_to_ctow(path):
 
     write_pose_path = Path("outputs/rio/full/RIO_hloc_d2net-ss+NN-mutual_skip10_dt160222-t0411_corrected_frame.txt")
     write_results_to_file(write_pose_path, img_poses_list_final)
+
+def main_dummy():
+    pass
+
+if __name__ == "__main__":
+    main_dummy()
+    dataset_dir = "datasets/InLoc_like_RIO10/scene01_synth"
+    r = "database/cutouts/frame-001820.color.jpg"
+    depth_img = read_depth_image_given_colorimg_path(Path(dataset_dir), Path(r))
