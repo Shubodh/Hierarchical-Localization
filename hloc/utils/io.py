@@ -95,10 +95,10 @@ def write_results_to_file(path, img_poses_list):
             f.write(f'{name} {qvec} {tvec}\n')
     logging.info(f'Written {len(img_poses_list)} poses to {path.name}')
 
-def convert_pose_file_format_wtoc_to_ctow(path):
-    file_pose = Path("outputs/rio/full/RIO_hloc_d2net-ss+NN-mutual_skip10_dt160222-t0411.txt")
-    #file_pose = path
-    poses = parse_poses_from_file(file_pose)
+def convert_pose_file_format_wtoc_to_ctow(pose_path):
+    # file_pose = Path("outputs/rio/full/RIO_hloc_d2net-ss+NN-mutual_skip10_dt160222-t0411.txt")
+    pose_path = Path(pose_path)
+    poses = parse_poses_from_file(pose_path)
     img_poses_list_final = []
     for file, pose in poses:
         RT_wtoc = np.zeros((4,4))
@@ -118,8 +118,8 @@ def convert_pose_file_format_wtoc_to_ctow(path):
         pose_c = [qw_c, qx_c, qy_c, qz_c, tx_c, ty_c, tz_c]
         img_poses_list_final.append((file, pose_c))
 
-
-    write_pose_path = Path("outputs/rio/full/RIO_hloc_d2net-ss+NN-mutual_skip10_dt160222-t0411_corrected_frame.txt")
+    write_pose_path = Path(str(pose_path.parents[0] / pose_path.stem) + "_corrected_frame.txt")
+    # write_pose_path = Path("outputs/rio/full/RIO_hloc_d2net-ss+NN-mutual_skip10_dt160222-t0411_corrected_frame.txt")
     write_results_to_file(write_pose_path, img_poses_list_final)
 
 def main_check_read_write_depth():
@@ -140,4 +140,11 @@ def main_check_read_write_depth():
 
 if __name__ == "__main__":
     # main_dummy()
-    main_check_read_write_depth()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--pose_path', type=Path, required=True)
+    args = parser.parse_args()
+    convert_pose_file_format_wtoc_to_ctow(**args.__dict__)
+
+    # main_check_read_write_depth()
+    # pose_path = Path("outputs/rio/full/RIO_hloc_d2net-ss+NN-mutual_skip10_dt160222-t0411.txt")
+    # convert_pose_file_format_wtoc_to_ctow(pose_path)
