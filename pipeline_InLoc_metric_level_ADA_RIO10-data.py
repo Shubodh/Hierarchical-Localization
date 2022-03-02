@@ -46,9 +46,9 @@ loc_pairs = pairs / 'netvlad40_dt140222.txt' #'netvlad40_FOR-scene01_and_places_
 outputs = Path('/data/InLoc_dataset/outputs/rio/')  # where everything will be saved
 
 # Set config
-dt_time = 'dt021322-t0009'
-feature_name  = 'superpoint_inloc'  # sift, superpoint_inloc, d2net-ss, netvlad
-matcher_name  = 'superglue' # NN-mutual, superglue
+dt_time = 'dt021322-t0047'
+feature_name  = 'd2net-ss'  # sift, superpoint_inloc, d2net-ss, netvlad
+matcher_name  = 'NN-mutual' # NN-mutual, superglue
 skip_no = 10
 
 #results = outputs / Path('RIO_hloc_superpoint+superglue_skip10_' + dt_time + '.txt')  # the result file
