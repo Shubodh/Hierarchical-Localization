@@ -21,8 +21,8 @@ from .utils.parsers import parse_retrieval, names_to_pair
 from .utils.open3d_helper import custom_draw_geometry, load_view_point
 from .utils.camera_projection_helper import load_depth_to_scan
 
-sys.path.append('../')
-from p3p_view_synthesis_inverse_warping import viz_entire_room_by_registering
+# sys.path.append('../')
+# from p3p_view_synthesis_inverse_warping import viz_entire_room_by_registering
 
 def interpolate_scan(scan, kp):
     h, w, c = scan.shape
@@ -182,6 +182,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
 
         mkpq, mkpr = kpq[v], kpr[m[v]]
         num_matches += len(mkpq)
+        print(f"{q, r}  num_matches: {num_matches}")
 
 
         # viz_entire_room_by_registering(dataset_dir, r)

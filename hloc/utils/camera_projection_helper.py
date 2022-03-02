@@ -4,7 +4,7 @@ import open3d as o3d
 import json
 import sys
 
-# from open3d_helper import viz_with_array_inp
+# from .open3d_helper import viz_with_array_inp
 
 
 def get_depth_at_pixel(depth_frame, pixel_x, pixel_y):
@@ -91,7 +91,7 @@ def convert_depth_frame_to_pointcloud(rgb_img,depth_image,  cam_intrinsics):
     x = (u.flatten() - cx)/fx
     y = (v.flatten() - cy)/fy
 
-    z = depth_image.flatten() / 1000
+    z = depth_image.flatten() / 1000 #Values of depth images are typically in millimetres. 
     x = np.multiply(x,z)
     y = np.multiply(y,z)
 

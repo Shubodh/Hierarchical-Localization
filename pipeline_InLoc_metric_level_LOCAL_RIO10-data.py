@@ -37,20 +37,21 @@ import matplotlib.pyplot as plt
 # Here we declare the paths to the dataset, image pairs, and we choose the feature extractor and the matcher. You need to download the [InLoc dataset](https://www.visuallocalization.net/datasets/) and put it in `datasets/inloc/`, or change the path.
 
 # dataset = Path('/data/InLoc_dataset/')  # change this if your dataset is somewhere else
-dataset = Path('datasets/InLoc_like_RIO10/scene01/')  # change this if your dataset is somewhere else
+dataset = Path('datasets/InLoc_like_RIO10/scene01_synth/')  # change this if your dataset is somewhere else
 
 pairs = Path('pairs/graphVPR/rio_metric/') #'pairs/inloc/'
-loc_pairs = pairs / 'bruteforce40_samply.txt'  # bruteforce40_samply.txt # top 40 retrieved by NetVLAD #-minustop3rooms
+loc_pairs = pairs / 'bruteforce40_samply.txt'#_tiny_0 #_cheating  # bruteforce40_samply.txt #_tiny_0 # top 40 retrieved by NetVLAD #-minustop3rooms
 
-outputs = Path('outputs/rio/')  # where everything will be saved
+outputs = Path('outputs/rio/tiny/')  # where everything will be saved
 
 # Set config
-dt_time = 'dt150222-t0112'
-feature_name  = 'd2net-ss'  # sift, superpoint_inloc
-matcher_name  = 'superglue' # NN-mutual
+dt_time = 'dt180222-t0037'
+custom_info = '' #PINHOLE_cam
+feature_name  = 'superpoint_inloc'  # sift, superpoint_inloc, d2net-ss
+matcher_name  = 'superglue' # NN-mutual, superglue
 skip_no = 10
 
-results = outputs / Path('RIO_hloc_' + feature_name +'+' + matcher_name + '_skip' + str(skip_no) + '_' + dt_time + '.txt')  # the result file
+results = outputs / Path('RIO_hloc_LOCAL_TINY_' + custom_info + '_' + feature_name +'+' + matcher_name + '_skip' + str(skip_no) + '_' + dt_time + '.txt')  # the result file
 print(f"Starting localization on {dt_time}")
 
 # list the standard configurations available
