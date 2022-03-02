@@ -52,6 +52,16 @@ def plot_images(imgs, titles=None, cmaps='gray', dpi=100, pad=.5,
             ax[i].set_title(titles[i])
     fig.tight_layout(pad=pad)
 
+def plot_images_simple(rgb_img, depth_img):
+    arr = [rgb_img,  depth_img]
+    titles = ['rgb','depth']
+    plt.figure(figsize=(12 ,8))
+    for i, data in enumerate(arr):
+        ax = plt.subplot(1, 2, i+1)
+        ax.axis('off')
+        ax.set_title(titles[i])
+        plt.imshow(data, cmap='gray')
+    # plt.show()
 
 def plot_keypoints(kpts, colors='lime', ps=4):
     """Plot keypoints for existing images.

@@ -91,7 +91,7 @@ def convert_depth_frame_to_pointcloud(rgb_img,depth_image,  cam_intrinsics):
     x = (u.flatten() - cx)/fx
     y = (v.flatten() - cy)/fy
 
-    z = depth_image.flatten() / 1000
+    z = depth_image.flatten() / 1000 #Values of depth images are typically in millimetres. 
     x = np.multiply(x,z)
     y = np.multiply(y,z)
 

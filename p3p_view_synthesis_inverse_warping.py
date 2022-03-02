@@ -17,7 +17,7 @@ from hloc.utils.open3d_helper import custom_draw_geometry, load_view_point, viz_
 from hloc.utils.camera_projection_helper import synthesize_img_given_viewpoint, load_depth_to_scan, convert_depth_pixel_to_metric_coordinate, convert_depth_frame_to_pointcloud
 from hloc.utils.parsers import parse_pose_file_RIO, parse_camera_file_RIO
 from hloc.utils.io import read_image
-from hloc.utils.viz import plot_images
+from hloc.utils.viz import plot_images, simple_plot_images # Yet to test simple_plot_images
 # from hloc.localize_inloc import interpolate_scan
 
 def interpolate_scan(scan, kp):
@@ -359,6 +359,7 @@ def rio_main_single_pcd(frame_id, seq_id, dataset_dir, features, debug=False):
     if debug:
         # print("Showing images")
         # plot_images(plot_img_list)
+        # simple_plot_images(plot_img_list)
         # plt.show()
         print("Showing room mesh model now:")
         # mesh_model = o3d.io.read_triangle_mesh(str(mesh_file), True)
