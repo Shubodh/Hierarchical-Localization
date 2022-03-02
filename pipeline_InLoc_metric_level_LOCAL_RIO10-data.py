@@ -60,7 +60,7 @@ print(f"Starting localization on {dt_time}")
 
 # pick one of the configurations for extraction and matching
 # you can also simply write your own here!
-feature_conf = extract_features.confs[feature_name] # superpoint_inloc, d2net-ss
+feature_conf = extract_features.confs[feature_name] # superpoint_inloc, d2net-ss, netvlad
 matcher_conf = match_features.confs[matcher_name] # superglue
 
 

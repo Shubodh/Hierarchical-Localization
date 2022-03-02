@@ -40,11 +40,18 @@ import matplotlib.pyplot as plt
 dataset = Path('/data/InLoc_like_RIO10/scene01/')  # change this if your dataset is somewhere else
 
 pairs = Path('pairs/graphVPR/rio_metric/') #'pairs/inloc/'
-loc_pairs = pairs / 'bruteforce40_samply.txt'  # top 40 retrieved by NetVLAD #-minustop3rooms
+loc_pairs = pairs / 'netvlad40_dt140222.txt'  # top 40 retrieved by NetVLAD #-minustop3rooms
 
 outputs = Path('/data/InLoc_dataset/outputs/rio/')  # where everything will be saved
-dt_time = 'dt140222-t0314'
-results = outputs / Path('RIO_hloc_superpoint+superglue_skip10_' + dt_time + '.txt')  # the result file
+
+# Set config
+dt_time = 'dt160222-t0411'
+feature_name  = 'd2net-ss'  # sift, superpoint_inloc
+matcher_name  = 'NN-mutual' # NN-mutual
+skip_no = 10
+
+#results = outputs / Path('RIO_hloc_superpoint+superglue_skip10_' + dt_time + '.txt')  # the result file
+results = outputs / Path('RIO_hloc_' + feature_name +'+' + matcher_name + '_skip' + str(skip_no) + '_' + dt_time + '.txt')  # the result file
 print(f"Starting localization on {dt_time}")
 
 # list the standard configurations available
@@ -54,26 +61,30 @@ print(f"Starting localization on {dt_time}")
 
 # pick one of the configurations for extraction and matching
 # you can also simply write your own here!
-feature_conf = extract_features.confs['superpoint_inloc']
-matcher_conf = match_features.confs['superglue']
+feature_conf = extract_features.confs[feature_name] # superpoint_inloc, d2net-ss, netvlad
+matcher_conf = match_features.confs[matcher_name] # superglue
 
 
 # ## Extract local features for database and query images
 feature_path = extract_features.main(feature_conf, dataset, outputs)
 
+match_path = match_features.main(matcher_conf, loc_pairs, feature_conf['output'], outputs)
+# 
+localize_rio.main(
+    dataset, loc_pairs, feature_path, match_path, results,
+    skip_matches=skip_no) #20. 10 is giving error currently, for 1 query, unable to find any matches > 20  # skip database images with too few matches
+
+#visualization.visualize_loc(results, dataset, n=1, top_k_db=1, seed=2)
+
+# DESCRIPTIONS OF ABOVE STEPS
 
 # ## Match the query images
 # Here we assume that the localization pairs are already computed using image retrieval (NetVLAD). To generate new pairs from your own global descriptors, have a look at `hloc/pairs_from_retrieval.py`. These pairs are also used for the localization - see below.
-match_path = match_features.main(matcher_conf, loc_pairs, feature_conf['output'], outputs)
 
 # ## Localize!
 # Perform hierarchical localization using the precomputed retrieval and matches. Different from when localizing with Aachen, here we do not need a 3D SfM model here: the dataset already has 3D lidar scans. The file `InLoc_hloc_superpoint+superglue_netvlad40.txt` will contain the estimated query poses.
 
-localize_rio.main(
-    dataset, loc_pairs, feature_path, match_path, results,
-    skip_matches=10) #20. 10 is giving error currently, for 1 query, unable to find any matches > 20  # skip database images with too few matches
 
 
 # ## Visualization
 # We parse the localization logs and for each query image plot matches and inliers with a few database images.
-#visualization.visualize_loc(results, dataset, n=1, top_k_db=1, seed=2)
