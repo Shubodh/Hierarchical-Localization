@@ -9,6 +9,7 @@ import open3d as o3d
 import matplotlib.pyplot as plt
 
 sys.path.append('../../') #TODO-Later: Not a permanent solution, should fix imports later.
+sys.path.append('../')
 from hloc.utils.parsers import parse_poses_from_file
 from hloc.utils.viz import plot_images, plot_images_simple
 # from .parsers import parse_poses_from_file

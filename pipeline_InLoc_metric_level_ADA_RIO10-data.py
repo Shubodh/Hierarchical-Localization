@@ -38,16 +38,17 @@ import matplotlib.pyplot as plt
 
 # dataset = Path('/data/InLoc_dataset/')  # change this if your dataset is somewhere else
 dataset = Path('/data/InLoc_like_RIO10/scene01/')  # change this if your dataset is somewhere else
+#dataset = Path('/data/InLoc_like_RIO10/scene01_and_places/')  # change this if your dataset is somewhere else
 
 pairs = Path('pairs/graphVPR/rio_metric/') #'pairs/inloc/'
-loc_pairs = pairs / 'netvlad40_dt140222.txt'  # top 40 retrieved by NetVLAD #-minustop3rooms
+loc_pairs = pairs / 'netvlad40_dt140222.txt' #'netvlad40_FOR-scene01_and_places_dt020322.txt'  # top 40 retrieved by NetVLAD #-minustop3rooms
 
 outputs = Path('/data/InLoc_dataset/outputs/rio/')  # where everything will be saved
 
 # Set config
-dt_time = 'dt160222-t0411'
-feature_name  = 'd2net-ss'  # sift, superpoint_inloc
-matcher_name  = 'NN-mutual' # NN-mutual
+dt_time = 'dt021322-t0009'
+feature_name  = 'superpoint_inloc'  # sift, superpoint_inloc, d2net-ss, netvlad
+matcher_name  = 'superglue' # NN-mutual, superglue
 skip_no = 10
 
 #results = outputs / Path('RIO_hloc_superpoint+superglue_skip10_' + dt_time + '.txt')  # the result file

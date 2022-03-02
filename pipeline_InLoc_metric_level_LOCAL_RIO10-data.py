@@ -47,7 +47,7 @@ outputs = Path('outputs/rio/tiny/')  # where everything will be saved
 # Set config
 dt_time = 'dt180222-t0037'
 custom_info = '' #PINHOLE_cam
-feature_name  = 'superpoint_inloc'  # sift, superpoint_inloc, d2net-ss
+feature_name  = 'superpoint_inloc'  # sift, superpoint_inloc, d2net-ss, netvlad
 matcher_name  = 'superglue' # NN-mutual, superglue
 skip_no = 10
 
