@@ -5,8 +5,11 @@ import logging
 from pathlib import Path
 import sys
 import png
-import open3d as o3d
+#import open3d as o3d
 import matplotlib.pyplot as plt
+import argparse
+from scipy.spatial.transform import Rotation as R
+
 
 sys.path.append('../../') #TODO-Later: Not a permanent solution, should fix imports later.
 sys.path.append('../')
@@ -14,6 +17,7 @@ from hloc.utils.parsers import parse_poses_from_file
 from hloc.utils.viz import plot_images, plot_images_simple
 # from .parsers import parse_poses_from_file
 # from parsers import parse_poses_from_file
+
 
 def read_image(path, grayscale=False):
     if grayscale:
@@ -121,6 +125,7 @@ def convert_pose_file_format_wtoc_to_ctow(pose_path):
     write_pose_path = Path(str(pose_path.parents[0] / pose_path.stem) + "_corrected_frame.txt")
     # write_pose_path = Path("outputs/rio/full/RIO_hloc_d2net-ss+NN-mutual_skip10_dt160222-t0411_corrected_frame.txt")
     write_results_to_file(write_pose_path, img_poses_list_final)
+    print(f"Converted wtoc {str(pose_path)} to ctow {str(write_pose_path)}")
 
 def main_check_read_write_depth():
     dataset_dir = "../../datasets/InLoc_like_RIO10/scene01_synth"
