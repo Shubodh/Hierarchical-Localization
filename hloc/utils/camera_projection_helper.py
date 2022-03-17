@@ -250,7 +250,7 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
 
     xy_img = np.matmul(K_hom, xyz_hom1)
     #print(np.nanmax(xy_img[0:2,:]), np.nanmin(xy_img[0:2,:]))
-    xy_img = xy_img[0:2,:] / xy_img[2:3,:] #TODO: Check if minus - should be there before xy_img[2:3,:].
+    xy_img = xy_img[0:2,:] / xy_img[2:3,:] #TODO-Later: Check if minus - should be there before xy_img[2:3,:].
     #print(xy_imgcv.shape, xy_img.shape)
     xy_imgcv = np.array(xy_img.T, dtype = np.int_)
 
@@ -320,7 +320,7 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
 #
 #    xyz_hom1 = np.matmul(extrinsics, xyz_hom0)
 #    xy_img = np.matmul(K_hom, xyz_hom1)
-#    xy_img = xy_img[0:2,:] / xy_img[2:3,:] #TODO: Check if minus - should be there before xy_img[2:3,:].
+#    xy_img = xy_img[0:2,:] / xy_img[2:3,:] #TXDX: Check if minus - should be there before xy_img[2:3,:].
 #    #xy_img[1] *= -1
 #
 ##    print(xy_img.shape, "bii", np.nanmax(xy_img, axis=1),  xy_img[:, 0:10])
