@@ -190,7 +190,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
     #     'height': height,
     #     'params': [focal_length, cx, cy]
     # }
-    print("Note: using focal_length as fx, NOT fy. Also NOT using distortion params. (pycolmap allows it)")
+    print("TODO-Later: using focal_length as fx, NOT fy. Also NOT using distortion params. (pycolmap allows it)")
     cfg = {
         'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
         'width': width,

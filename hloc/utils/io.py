@@ -127,6 +127,36 @@ def convert_pose_file_format_wtoc_to_ctow(pose_path):
     write_results_to_file(write_pose_path, img_poses_list_final)
     print(f"Converted wtoc {str(pose_path)} to ctow {str(write_pose_path)}")
 
+def convert_pose_file_format_wtoc_to_ctow_RIO_format(pose_path, scene_id):
+    # file_pose = Path("outputs/rio/full/RIO_hloc_d2net-ss+NN-mutual_skip10_dt160222-t0411.txt")
+    pose_path = Path(pose_path)
+    poses = parse_poses_from_file(pose_path)
+    img_poses_list_final = []
+    for file, pose in poses:
+        file_stem = str(Path(Path(file).stem).stem)
+        file_full = "seq" + str(scene_id) + "_02/" + file_stem
+        RT_wtoc = np.zeros((4,4))
+        RT_wtoc[3,3] = 1 
+
+        assert len(pose) == 7
+        qw, qx, qy, qz  = pose[0:4]
+        RT_wtoc[0:3,0:3] = R.from_quat([qx, qy, qz, qw]).as_matrix()
+        RT_wtoc[0:3, 3] = pose[4:]
+        RT_ctow = np.copy(RT_wtoc)
+        RT_ctow[0:3,0:3] = RT_wtoc[0:3,0:3].T
+        RT_ctow[0:3,3] = - RT_wtoc[0:3,0:3].T @ RT_wtoc[0:3,3]
+
+        qx_c, qy_c, qz_c, qw_c = R.from_matrix(RT_ctow[0:3,0:3]).as_quat()
+        tx_c, ty_c, tz_c = RT_ctow[0:3,3]
+
+        pose_c = [qw_c, qx_c, qy_c, qz_c, tx_c, ty_c, tz_c]
+        img_poses_list_final.append((file_full, pose_c))
+
+    write_pose_path = Path(str(pose_path.parents[0] / pose_path.stem) + "_corrected_RIO_format.txt")
+    # write_pose_path = Path("outputs/rio/full/RIO_hloc_d2net-ss+NN-mutual_skip10_dt160222-t0411_corrected_frame.txt")
+    write_results_to_file(write_pose_path, img_poses_list_final)
+    print(f"Converted wtoc {str(pose_path)} to ctow IN RIO FORMAT {str(write_pose_path)}")
+
 def main_check_read_write_depth():
     dataset_dir = "../../datasets/InLoc_like_RIO10/scene01_synth"
     r = "database/cutouts/frame-004269.color.jpg" #frame-001820.color.jpg #frame-004269.color.jpg
@@ -147,8 +177,10 @@ if __name__ == "__main__":
     # main_dummy()
     parser = argparse.ArgumentParser()
     parser.add_argument('--pose_path', type=Path, required=True)
+    parser.add_argument('--scene_id', type=Path, required=True)
     args = parser.parse_args()
-    convert_pose_file_format_wtoc_to_ctow(**args.__dict__)
+    #convert_pose_file_format_wtoc_to_ctow(**args.__dict__)
+    convert_pose_file_format_wtoc_to_ctow_RIO_format(**args.__dict__)
 
     # main_check_read_write_depth()
     # pose_path = Path("outputs/rio/full/RIO_hloc_d2net-ss+NN-mutual_skip10_dt160222-t0411.txt")

@@ -13,7 +13,7 @@ import pickle
 import time
 
 #sys.path.append(str(Path(__file__).parent / '..')) #to import hloc
-from hloc import extract_features, match_features, localize_rio, visualization
+from hloc import extract_features_rio, match_features, localize_rio, visualization
 
 #import hloc
 #print("carefully inspect which hloc it is, whether the docker one or normal modified one.")
@@ -67,18 +67,18 @@ if __name__ == "__main__":
     print(f"Starting localization on {dt_time}")
 
     # list the standard configurations available
-    # print(f'Configs for feature extractors:\n{pformat(extract_features.confs)}')
+    # print(f'Configs for feature extractors:\n{pformat(extract_features_rio.confs)}')
     # print(f'Configs for feature matchers:\n{pformat(match_features.confs)}')
 
 
     # pick one of the configurations for extraction and matching
     # you can also simply write your own here!
-    feature_conf = extract_features.confs[feature_name] # superpoint_inloc, d2net-ss, netvlad
+    feature_conf = extract_features_rio.confs[feature_name] # superpoint_inloc, d2net-ss, netvlad
     matcher_conf = match_features.confs[matcher_name] # superglue
 
 
     # ## Extract local features for database and query images
-    feature_path = extract_features.main(feature_conf, dataset, outputs)
+    feature_path = extract_features_rio.main(feature_conf, dataset, outputs)
     print(feature_path)
     print(outputs)
     print("\n")

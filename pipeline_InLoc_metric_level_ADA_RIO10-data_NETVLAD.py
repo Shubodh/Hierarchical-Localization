@@ -13,7 +13,7 @@ import pickle
 import time
 
 #sys.path.append(str(Path(__file__).parent / '..')) #to import hloc
-from hloc import extract_features, match_features, localize_rio, visualization
+from hloc import extract_features_rio, match_features, localize_rio, visualization
 
 #import hloc
 #print("carefully inspect which hloc it is, whether the docker one or normal modified one.")
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     # ## Setup
     # Here we declare the paths to the dataset, image pairs, and we choose the feature extractor and the matcher. You need to download the [InLoc dataset](https://www.visuallocalization.net/datasets/) and put it in `datasets/inloc/`, or change the path.
 
-    and_only_just = "" # ""  # _ONLY_PLACES means only places, "" means only scene0X, "_AND_PLACES" means both places + scene0X.# _and_places # _only_places
+    and_only_just = "_JUST" # ""  # _ONLY_PLACES means only places, "" means only scene0X, "_AND_PLACES" means both places + scene0X.# _and_places # _only_places
     date = 'dt170322'
 
     #dataset = Path('/data/InLoc_like_RIO10/scene01/')  # change this if your dataset is somewhere else
@@ -60,25 +60,25 @@ if __name__ == "__main__":
     matcher_name  = 'NN-mutual' # NN-mutual, superglue
     #skip_no = 20
 
-    testing_type ='scene'+ given_scene_id + '_sampling10_' #'scene01_sampling10_' #'scene01_only_places_' #'scene01_and_places_'
+    #testing_type ='scene'+ given_scene_id + '_sampling10_' #'scene01_sampling10_' #'scene01_only_places_' #'scene01_and_places_'
 
     #results = outputs / Path('RIO_hloc_superpoint+superglue_skip10_' + dt_time + '.txt')  # the result file
     #results = outputs / Path(testing_type + 'RIO_hloc_' + feature_name +'+' + matcher_name + '_skip' + str(skip_no) + '_' + dt_time + '.txt')  # the result file
     print(f"Starting localization on {dt_time}")
 
     # list the standard configurations available
-    # print(f'Configs for feature extractors:\n{pformat(extract_features.confs)}')
+    # print(f'Configs for feature extractors:\n{pformat(extract_features_rio.confs)}')
     # print(f'Configs for feature matchers:\n{pformat(match_features.confs)}')
 
 
     # pick one of the configurations for extraction and matching
     # you can also simply write your own here!
-    feature_conf = extract_features.confs[feature_name] # superpoint_inloc, d2net-ss, netvlad
+    feature_conf = extract_features_rio.confs[feature_name] # superpoint_inloc, d2net-ss, netvlad
     matcher_conf = match_features.confs[matcher_name] # superglue
 
 
     # ## Extract local features for database and query images
-    feature_path = extract_features.main(feature_conf, dataset, outputs)
+    feature_path = extract_features_rio.main(feature_conf, dataset, outputs)
     print(feature_path)
     print(outputs)
     print("\n")

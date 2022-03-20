@@ -41,7 +41,7 @@ if __name__ == "__main__":
     # ## Setup
     # Here we declare the paths to the dataset, image pairs, and we choose the feature extractor and the matcher. You need to download the [InLoc dataset](https://www.visuallocalization.net/datasets/) and put it in `datasets/inloc/`, or change the path.
 
-    and_only_just = "" # ""  # _ONLY_PLACES means only places, "" means only scene0X, "_AND_PLACES" means both places + scene0X.# _and_places # _only_places
+    and_only_just = "_JUST" # ""  # _ONLY_PLACES means only places, "" means only scene0X, "_AND_PLACES" means both places + scene0X.# _and_places # _only_places
     date = 'dt170322'
 
     #dataset = Path('/data/InLoc_like_RIO10/scene01/')  # change this if your dataset is somewhere else
@@ -50,18 +50,19 @@ if __name__ == "__main__":
 
     #pairs = Path('pairs/graphVPR/rio_metric/') #'pairs/inloc/'
     pairs = Path('pairs/graphVPR/rio_metric/scene' + given_scene_id + '/')
-    loc_pairs = pairs / Path('netvlad40_scene' + and_only_just + '_sampling10_' + date +  '.txt') #netvlad40_FOR-scene01_and_places_sampling10_dt070322.txt  #netvlad40_FOR-scene01_only_places_dt070322.txt  # 'netvlad40_dt140222.txt' # top 40 retrieved by NetVLAD #-minustop3rooms
+    netvlad_no = "100" # "40"
+    loc_pairs = pairs / Path('netvlad'+netvlad_no +'_scene' + and_only_just + '_sampling10_' + date +  '.txt') #netvlad40_FOR-scene01_and_places_sampling10_dt070322.txt  #netvlad40_FOR-scene01_only_places_dt070322.txt  # 'netvlad40_dt140222.txt' # top 40 retrieved by NetVLAD #-minustop3rooms
 
     output_end ='scene' + given_scene_id + and_only_just +  '/' #'scene' + given_scene_id + '_and_places/' #'scene01_and_places' #'scene01_just/'
     outputs = Path('/data/InLoc_dataset/outputs/rio/' + output_end)  # where everything will be saved
 
     # Set config
-    dt_time = date +'-t1648'
+    dt_time = date +'-t2149'
     feature_name  = 'd2net-ss'  # sift, superpoint_inloc, d2net-ss, netvlad
     matcher_name  = 'NN-mutual' # NN-mutual, superglue
-    skip_no = 40
+    skip_no = 40 # USed 40 for all scenes excluding 9th one
 
-    testing_type ='scene'+ given_scene_id + '_sampling10_' #'scene01_sampling10_' #'scene01_only_places_' #'scene01_and_places_'
+    testing_type ='scene'+ given_scene_id + '_sampling10_netvlad' + netvlad_no + '_' #'scene01_sampling10_' #'scene01_only_places_' #'scene01_and_places_'
 
     #results = outputs / Path('RIO_hloc_superpoint+superglue_skip10_' + dt_time + '.txt')  # the result file
     results = outputs / Path(testing_type + 'RIO_hloc_' + feature_name +'+' + matcher_name + '_skip' + str(skip_no) + '_' + dt_time + '.txt')  # the result file
