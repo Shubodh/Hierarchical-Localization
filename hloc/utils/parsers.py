@@ -62,7 +62,7 @@ def names_to_pair(name0, name1):
 
 
 def parse_pose_file_RIO(pose_file):
-    #Reading the pose file
+    #Reading the individual pose file txt (RIO10 format: 4*4 matrix in 4 lines)
     with open(pose_file,'r') as f:
         pose_lines = f.readlines()
     # for row in pose_lines:

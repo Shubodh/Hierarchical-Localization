@@ -13,7 +13,7 @@ from scipy.spatial.transform import Rotation as R
 
 sys.path.append('../../') #TODO-Later: Not a permanent solution, should fix imports later.
 sys.path.append('../')
-from hloc.utils.parsers import parse_poses_from_file
+from hloc.utils.parsers import parse_poses_from_file, parse_pose_file_RIO
 from hloc.utils.viz import plot_images, plot_images_simple
 # from .parsers import parse_poses_from_file
 # from parsers import parse_poses_from_file
@@ -99,6 +99,20 @@ def write_results_to_file(path, img_poses_list):
             f.write(f'{name} {qvec} {tvec}\n')
     logging.info(f'Written {len(img_poses_list)} poses to {path.name}')
 
+def write_individual_pose_files_to_single_output(folder_path, output_file_path):
+    """ 
+    Given a folder as input, 
+    1. read all individual pose.txt files (RIO10 format: 4*4 matrix in 4 lines) 
+    2. Convert Rt to quat
+    3. save it in a single output file (RIO10 format: # scene-id/frame-id qw qx qy qz tx ty tz)
+    """
+    folder_path = Path(folder_path)
+    pose_files = sorted(list(folder_path.glob('*pose.txt')))
+    for pose_file in pose_files:
+        print(pose_file)
+
+    RT_final, RT_ctow = parse_pose_file_RIO(pose_file)
+
 def convert_pose_file_format_wtoc_to_ctow(pose_path):
     # file_pose = Path("outputs/rio/full/RIO_hloc_d2net-ss+NN-mutual_skip10_dt160222-t0411.txt")
     pose_path = Path(pose_path)
@@ -174,14 +188,33 @@ def main_check_read_write_depth():
     # print(np.unique(depth_image_2))
 
 if __name__ == "__main__":
-    # main_dummy()
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--pose_path', type=Path, required=True)
-    parser.add_argument('--scene_id', type=Path, required=True)
-    args = parser.parse_args()
-    #convert_pose_file_format_wtoc_to_ctow(**args.__dict__)
-    convert_pose_file_format_wtoc_to_ctow_RIO_format(**args.__dict__)
-
     # main_check_read_write_depth()
     # pose_path = Path("outputs/rio/full/RIO_hloc_d2net-ss+NN-mutual_skip10_dt160222-t0411.txt")
     # convert_pose_file_format_wtoc_to_ctow(pose_path)
+    parser = argparse.ArgumentParser()
+
+    # 1. convert pose file from wtoc to ctow & RIO format
+    #python3 io.py --pose_path /data/InLoc_dataset/outputs/rio/scene0"+ room_id  + "/scene0" +
+    #room_id  +"_sampling10_RIO_hloc_d2net-ss+NN-mutual_skip40_" + dttime +".txt" +
+    #" --scene_id 0" + room_id
+    parser.add_argument('--pose_path', type=Path, required=False)
+    parser.add_argument('--scene_id', type=Path, required=False)
+
+    # 2. take individual pose files and write that in single output file in quat format
+    # python3 io.py --folder_path /data/InLoc_like_.. --output_file_path ..
+    parser.add_argument('--folder_path', type=Path, required=False)
+    parser.add_argument('--output_file_path', type=Path, required=False)
+
+    args = parser.parse_args()
+    #convert_pose_file_format_wtoc_to_ctow(**args.__dict__)
+
+    # 1. above
+    pose_path = args.pose_path
+    scene_id = args.scene_id
+    # convert_pose_file_format_wtoc_to_ctow_RIO_format(pose_path, scene_id)
+
+    # 2. above
+    folder_path = args.folder_path
+    output_file_path = args.output_file_path
+    write_individual_pose_files_to_single_output(folder_path, output_file_path)
+
