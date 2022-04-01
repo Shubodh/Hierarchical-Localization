@@ -215,6 +215,7 @@ if __name__ == "__main__":
     # 2. take individual pose files and write that in single output file in quat format
     # python3 io.py --folder_path /data/InLoc_like_RIO10/sampling10/scene01_JU-queryAND-ST/query/
     # --output_file_path temp_dir/GT_RIO10_sampling10_scene01_queryAND.txt
+    # --scene_id 01
     parser.add_argument('--folder_path', type=Path, required=False)
     parser.add_argument('--output_file_path', type=Path, required=False)
 
@@ -224,10 +225,10 @@ if __name__ == "__main__":
     # 1. above
     pose_path = args.pose_path
     scene_id = args.scene_id
-    convert_pose_file_format_wtoc_to_ctow_RIO_format(pose_path, scene_id)
+    #convert_pose_file_format_wtoc_to_ctow_RIO_format(pose_path, scene_id)
 
     # 2. above
     folder_path = args.folder_path
     output_file_path = args.output_file_path
-    #write_individual_pose_files_to_single_output(folder_path, output_file_path, scene_id)
+    write_individual_pose_files_to_single_output(folder_path, output_file_path, scene_id)
 
