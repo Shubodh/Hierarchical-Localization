@@ -384,7 +384,7 @@ def rio_main_single_pcd(frame_id, seq_id, dataset_dir, features, debug=False):
     ## XYZ_onepoint = convert_depth_pixel_to_metric_coordinate(depth_in, pixel_x, pixel_y, cam_intrinsics_dict)
     # XYZ_full, RGB_full = convert_depth_frame_to_pointcloud(depth_img, rgb_img, cam_intrinsics_dict)
     # viz_with_array_inp(XYZ_full, RGB_full/255.0)
-    print("TODO-Later-2: The above custom code for making pcd has color issue. Possibly some inversion. Correct later.")
+    print("NOTE-2: The above custom code for making pcd has color issue. Possibly some inversion. Correct later.")
     # print(XYZ_onepoint, (XYZ_full.shape))
 
     # o3d_pcd, XYZ_o3d, RGB_o3d = o3d_convert_depth_frame_to_pointcloud(rgb_file, depth_file, cam_intrinsics_dict, img_size)

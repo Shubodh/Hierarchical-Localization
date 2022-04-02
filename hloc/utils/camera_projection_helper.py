@@ -97,7 +97,7 @@ def convert_depth_frame_to_pointcloud(rgb_img,depth_image,  cam_intrinsics):
 
     rgb_img = rgb_img.reshape(-1, 3)
 
-    print("TODO-Later-1: Your doubt of how to represent points with no depth values is here: Take a look")
+    # print("Your doubt of how to represent points with no depth values is here: Take a look")
     # print(x.shape)
     # x = x[np.nonzero(z)]
     # y = y[np.nonzero(z)]
@@ -105,7 +105,10 @@ def convert_depth_frame_to_pointcloud(rgb_img,depth_image,  cam_intrinsics):
     # print(x.shape)
     # sys.exit()
 
-    rgb  = rgb_img[np.nonzero(z)]
+    rgb  = rgb_img[np.nonzero(z)] 
+    #NOTE-1: rgb currently has bug. Perhaps the order is wrong.
+    # But not using it anywhere in the pipeline, so not fixing it.
+    # RELEVANT: See NOTE-2 in p3p_view_synthesis_inverse_warping.py. Perhaps same issue.
 
     # print(x.shape, rgb.shape, rgb_img.shape)
     # sys.exit()
@@ -116,7 +119,6 @@ def convert_depth_frame_to_pointcloud(rgb_img,depth_image,  cam_intrinsics):
     xyz[:,2] = z
     # print(xyz.shape, xyz[:10], x[:10], y[:10], z[:10])
     # sys.exit()
-    print("TODO-Later-3 (same as 2 perhaps): RGB issue here, look later")
 
     return xyz, rgb
 

@@ -101,13 +101,14 @@ def output_global_scan_rio(dataset_dir, r):
     height, width = img_size
     cam_intrinsics_dict = {'fx':K[0,0] , 'fy':K[1,1] , 'cx':K[0,2] , 'cy':K[1,2] }
 
-    XYZ, RGB = convert_depth_frame_to_pointcloud(rgb_img, depth_img, cam_intrinsics_dict)
+    XYZ, RGB_has_bug = convert_depth_frame_to_pointcloud(rgb_img, depth_img, cam_intrinsics_dict)
+    # RGB_has_bug has issues currently. See the convert_depth_frame_to_pointcloud() for more info. 
     global_pcd = (RT_ctow[:3, :3] @ XYZ.T) + RT_ctow[:3, 3].reshape((3,1))
     global_pcd = global_pcd.T
     global_pcd = (global_pcd.reshape((height, width, 3)))
     debug = False
     if debug:
-        viz_with_array_inp(XYZ, RGB, coords_bool=True)
+        viz_with_array_inp(XYZ, RGB_has_bug, coords_bool=True)
 
     return global_pcd 
 
@@ -149,7 +150,8 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         m = match_file[pair]['matches0'].__array__()
         v = (m > -1)
 
-        print(f"No of correspondences: {q,r, np.count_nonzero(v)}")
+        # Uncomment below if code is stopping. Likely because of number of correspondences < threshold.
+        # print(f"No of correspondences: {q,r, np.count_nonzero(v)}")
         if skip and (np.count_nonzero(v) < skip):
             continue
 
@@ -190,7 +192,8 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
     #     'height': height,
     #     'params': [focal_length, cx, cy]
     # }
-    print("TODO-Later: using focal_length as fx, NOT fy. Also NOT using distortion params. (pycolmap allows it)")
+
+    #NOTE-3: using focal_length fx, fy currently. Also NOT using distortion params. (pycolmap allows it) Look at 'OPENCV' model in https://github.com/colmap/colmap/blob/master/src/base/camera_models.h
     cfg = {
         'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
         'width': width,
