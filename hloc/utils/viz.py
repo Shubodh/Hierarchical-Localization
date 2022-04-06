@@ -1,6 +1,15 @@
 """
 2D visualization primitives based on Matplotlib.
 
+You MUST call it in following order, otherwise it won't work. For example, if you want to `save_plot` 
+at a certain path, do
+        ```
+        plot_images([read_image(dataset_dir / q), read_image(dataset_dir / r)])
+        plot_matches(mkpq, mkpr)
+        path_sv = Path("./hi_bro.png")
+        save_plot(path_sv)
+        ```
+
 1) Plot images with `plot_images`.
 2) Call `plot_keypoints` or `plot_matches` any number of times.
 3) Optionally: save a .png or .pdf plot (nice in papers!) with `save_plot`.

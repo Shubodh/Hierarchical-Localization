@@ -22,7 +22,7 @@ from .utils.open3d_helper import custom_draw_geometry, load_view_point, viz_with
 from .utils.camera_projection_helper import convert_depth_frame_to_pointcloud
 from .utils.parsers import parse_retrieval, names_to_pair, parse_pose_file_RIO, parse_camera_file_RIO
 from .utils.io import read_image
-from .utils.viz import plot_images, plot_matches
+from .utils.viz import plot_images, plot_matches, save_plot
 
 # sys.path.append('../')
 # from p3p_view_synthesis_inverse_warping import viz_entire_room_by_registering
@@ -151,7 +151,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         v = (m > -1)
 
         # Uncomment below if code is stopping. Likely because of number of correspondences < threshold.
-        # print(f"No of correspondences: {q,r, np.count_nonzero(v)}")
+        print(f"No of correspondences: {q,r, np.count_nonzero(v)}")
         if skip and (np.count_nonzero(v) < skip):
             continue
 
@@ -159,13 +159,19 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         num_matches += len(mkpq)
 
         # VISUALIZATION DEBUG:
-        # plot_images([read_image(dataset_dir / q), read_image(dataset_dir / r)])
-        # plot_matches(mkpq, mkpr)
-        # plt.show()
-        # print(mkpq.shape, mkpr.shape)
-        # sys.exit()
+        viz_or_save_plots = True
+        if viz_or_save_plots:
+            print(dataset_dir, q, r)
+            print(mkpq.shape, mkpr.shape)
 
+            plot_images([read_image(dataset_dir / q), read_image(dataset_dir / r)])
+            plot_matches(mkpq, mkpr)
+            path_sv = Path("./hi_bro.png")
+            save_plot(path_sv)
+            print(f"saved plot at {path_sv}")
 
+            # plt.show()
+            sys.exit()
 
         # viz_entire_room_by_registering(dataset_dir, r)
         # scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]

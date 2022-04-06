@@ -40,7 +40,7 @@ import matplotlib.pyplot as plt
 dataset = Path('datasets/InLoc_like_RIO10/scene01_synth/')  # change this if your dataset is somewhere else
 
 pairs = Path('pairs/graphVPR/rio_metric/') #'pairs/inloc/'
-loc_pairs = pairs / 'bruteforce40_samply.txt'#_tiny_0 #_cheating  # bruteforce40_samply.txt #_tiny_0 # top 40 retrieved by NetVLAD #-minustop3rooms
+loc_pairs = pairs / 'bruteforce40_samply_custom.txt'#_tiny_0 #_cheating  # bruteforce40_samply.txt #_tiny_0 # top 40 retrieved by NetVLAD #-minustop3rooms
 
 outputs = Path('outputs/rio/tiny/')  # where everything will be saved
 
