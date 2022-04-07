@@ -41,7 +41,7 @@ if __name__ == "__main__":
     # ## Setup
 
     and_only_just ="_JU-queryAND-ST" # "_AND_PLACES" # ""  # _ONLY_PLACES means only places, "" means only scene0X, "_AND_PLACES" means both places + scene0X.# _and_places # _only_places
-    date = 'dt300322'
+    date = 'dt030422'
 
     #dataset = Path('/data/InLoc_like_RIO10/scene01/')  # change this if your dataset is somewhere else
     dataset = Path('/data/InLoc_like_RIO10/sampling10/scene'+ given_scene_id + and_only_just + '/')  # change this if your dataset is somewhere else
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     outputs = Path('/data/InLoc_dataset/outputs/rio/' + output_end)  # where everything will be saved
 
     # Set config
-    dt_time = date +'-t1301'
+    dt_time = date +'-t0504'
     feature_name  = 'netvlad'  # sift, superpoint_inloc, d2net-ss, netvlad
     matcher_name  = 'NN-mutual' # NN-mutual, superglue
     #skip_no = 20

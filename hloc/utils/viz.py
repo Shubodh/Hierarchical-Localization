@@ -70,6 +70,7 @@ def plot_images_simple(rgb_img, depth_img):
         ax.axis('off')
         ax.set_title(titles[i])
         plt.imshow(data, cmap='gray')
+        # plt.savefig("temp_dir/" + str(img_id) + "_depth_fig.png")
     # plt.show()
 
 def plot_keypoints(kpts, colors='lime', ps=4):

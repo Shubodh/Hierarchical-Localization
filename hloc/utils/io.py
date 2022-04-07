@@ -213,8 +213,7 @@ if __name__ == "__main__":
     parser.add_argument('--scene_id', type=Path, required=True) #01 # needed for both 1. and 2.
 
     # 2. take individual pose files and write that in single output file in quat format
-    # python3 io.py --folder_path /data/InLoc_like_RIO10/sampling10/scene01_JU-queryAND-ST/query/
-    # --output_file_path temp_dir/GT_RIO10_sampling10_scene01_queryAND.txt
+    # python3 io.py --folder_path /data/InLoc_like_RIO10/sampling10/scene01_JU-queryAND-ST/query/ --output_file_path temp_dir/GT_RIO10_sampling10_scene01_queryAND.txt
     # --scene_id 01
     parser.add_argument('--folder_path', type=Path, required=False)
     parser.add_argument('--output_file_path', type=Path, required=False)

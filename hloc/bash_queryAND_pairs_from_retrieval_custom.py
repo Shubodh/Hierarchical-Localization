@@ -1,11 +1,11 @@
 import os
 
 if __name__ == '__main__':
-    room_ids = ["3", "5"] #, "7", "9"]["1"]#,
-    dt = "dt300322"
+    room_ids = ["5", "7"]#, "9"] #"1", "3",, "7", "9"]["1"]#,
+    dt = "dt030422"
     #num_matched = "100"
     num_matched = "40"
-    and_only_just ="_A-queryAND-ND_PLACES"#"_JU-queryAND-ST"# _AND_PLACES#_JUST
+    and_only_just ="_JU-queryAND-ST"#"_A-queryAND-ND_PLACES"# _AND_PLACES#_JUST
     for room_id in room_ids:
         print("\n")
         print(room_id)
