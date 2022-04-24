@@ -215,7 +215,7 @@ def get_clipped_pointcloud(pointcloud, boundary):
 
 
 
-def synthesize_img_given_viewpoint(pcd, viewpoint_json):
+def synthesize_img_given_viewpoint_long(pcd, viewpoint_json):
     # colors = colors * 255
     xyz = np.asarray(pcd.points)
     colors = np.asarray(pcd.colors) * 255
@@ -252,9 +252,9 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
 
     xy_img = np.matmul(K_hom, xyz_hom1)
     #print(np.nanmax(xy_img[0:2,:]), np.nanmin(xy_img[0:2,:]))
-    xy_img = xy_img[0:2,:] / xy_img[2:3,:] #TODO-Later: Check if minus - should be there before xy_img[2:3,:].
+    xy_img = xy_img[0:2,:] / xy_img[2:3,:] 
     #print(xy_imgcv.shape, xy_img.shape)
-    xy_imgcv = np.array(xy_img.T, dtype = np.int_)
+    xy_imgcv = np.array(xy_img.T, dtype = np.int_) #TODO: Relook, instead of int_, do upper or lower bound explicitly instead, something like: np.floor(uv.T).astype(np.float32)
 
     print("Done cv2.project:")
 
@@ -273,6 +273,70 @@ def synthesize_img_given_viewpoint(pcd, viewpoint_json):
                     #print(xy_imgcv[i], i)
                     synth_img[xy_imgcv[i,1], xy_imgcv[i,0]] = colors[i] #
 
+
+    img = o3d.geometry.Image((synth_img).astype(np.uint8))
+    #o3d.visualization.draw_geometries([img])
+    o3d.io.write_image(viewpoint_json + "synth.jpg", img)
+    print(f"image written to {viewpoint_json}synth.jpg")
+
+def synthesize_img_given_viewpoint_short(pcd, viewpoint_json):
+    """ WARNING: This function yet to be tested.
+    Wrote this taking inspiration from scan2imgfeat_projection() from PCLoc repo (see its utils.py).
+    Much cleaner and you can see the steps one by one compared to original function.
+    """
+    # colors = colors * 255
+    xyz = np.asarray(pcd.points)
+    colors = np.asarray(pcd.colors) * 255
+    
+    H = 1200
+    W = 1600
+    vpt_json = json.load(open(viewpoint_json))
+    extrinsics = np.array(vpt_json['extrinsic']).reshape(4,4).T
+    K = np.array(vpt_json['intrinsic']['intrinsic_matrix']).reshape(3,3).T
+    print("K")
+    print(K)
+
+    rvecs = np.zeros(3)
+    cv2.Rodrigues(extrinsics[0:3,0:3], rvecs)
+    tvecs = np.zeros(3)
+    tvecs = extrinsics[0:3,3] # - extrinsics[0:3,0:3].T @ extrinsics[0:3,3]
+
+    print(f"rvecs, tvecs: {rvecs, tvecs}")
+    dist = np.zeros(5)
+    print("Starting cv2.project:")
+    xyz_T = xyz.T
+    xyz_hom1 = np.vstack((xyz_T, np.ones(xyz_T[0].shape)))
+    K_hom = np.vstack((K, np.zeros(K[0].shape)))
+    K_hom = np.hstack((K_hom, np.array([[0,0,0,1]]).T))
+
+    #print("1. X_G visualization") #print("2. X_L visualization")#print("3. X_L_corr visualization") # #tf_ex = np.array([[1,0,0],[0,-1,0],[0,0,-1]]), then np.vstack((tf_ex, np.zeros(tf_ex[0].shape))), then np.hstack((tf_ex_hom, np.array([[0,0,0,1]]).T)), then xyz_hom1 = np.matmul(tf_ex_hom, xyz_hom1)
+    #viz_with_array_inp(xyz_hom1.T[:, :3],np.asarray(pcd.colors))
+
+    # MAIN PART OF THIS FUNCTION STARTS HERE: (For direct OpenCV function, see below old_code_dump_from_synthesize_img_given_viewpoint())
+    # 1. Camera projection and normalization
+    xyz_hom1 = np.matmul(extrinsics, xyz_hom1) #xyz_hom1.shape: 4 * 11520000
+    xy_img = np.matmul(K_hom, xyz_hom1)
+    xy_norm = xy_img[2, :]
+    xy_img = np.divide(xy_img[0:2,:], xy_norm)
+
+    # 2. Ignore points with negative depth, i.e. ones behind the camera. 
+    positive_depth_points = xy_norm > 0
+    xy_img = xy_img[:, positive_depth_points]
+    colors = colors[:, positive_depth_points]
+
+    # 3. projected pixel must be between [{0,W},{0,H}]
+    within_boundary = (xy_img[0,:] >= 0) & (xy_img[1,:] >= 0) & (xy_img[0,:] < W) & (xy_img[1,:] < H)
+    xy_img = xy_img[:, within_boundary]
+    colors = colors[:, within_boundary]
+
+    xy_imgcv = np.array(xy_img.T, dtype = np.int_) #TODO: Relook, instead of int_, do upper or lower bound explicitly instead, something like: np.floor(uv.T).astype(np.float32)
+
+    print("Done cv2.project:")
+    synth_img = np.ones((H, W, 3))  * 255
+    for i in range(colors.shape[0]):
+        synth_img[xy_imgcv[i,1], xy_imgcv[i,0]] = colors[i] #
+        # Be careful here: For xy_imgcv, (x,y) means x right first then y down.
+        # Whereas for numpy array, (x, y) means x down first then y right.
 
     img = o3d.geometry.Image((synth_img).astype(np.uint8))
     #o3d.visualization.draw_geometries([img])
