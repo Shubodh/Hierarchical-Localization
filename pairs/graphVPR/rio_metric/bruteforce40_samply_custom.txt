@@ -1,2 +1,0 @@
-query/frame-002018.color.jpg database/cutouts/frame-004309.color.jpg
-query/frame-002018.color.jpg database/cutouts/frame-004308.color.jpg

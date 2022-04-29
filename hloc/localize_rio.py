@@ -151,7 +151,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         v = (m > -1)
 
         # Uncomment below if code is stopping. Likely because of number of correspondences < threshold.
-        print(f"No of correspondences: {q,r, np.count_nonzero(v)}")
+        print(f"No of correspondences: {np.count_nonzero(v), q, r}")
         if skip and (np.count_nonzero(v) < skip):
             continue
 
@@ -159,19 +159,20 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         num_matches += len(mkpq)
 
         # VISUALIZATION DEBUG:
-        viz_or_save_plots = True
+        viz_or_save_plots = False
         if viz_or_save_plots:
-            print(dataset_dir, q, r)
-            print(mkpq.shape, mkpr.shape)
+            # print(dataset_dir, Path(q).stem, Path(Path(r).stem).stem)
+            # print(f"Number of matches: {mkpq.shape[0]}")
 
             plot_images([read_image(dataset_dir / q), read_image(dataset_dir / r)])
             plot_matches(mkpq, mkpr)
-            path_sv = Path("./hi_bro.png")
+            pref_path = Path("outputs/graphVPR/rio_metric/viz/") 
+            path_sv =  pref_path / Path(dataset_dir.stem[:7] + "_q-" + Path(Path(q).stem).stem + "_r-" + Path(Path(r).stem).stem +  ".png")
             save_plot(path_sv)
-            print(f"saved plot at {path_sv}")
+            # print(f"saved plot at {path_sv}")
 
             # plt.show()
-            sys.exit()
+            # sys.exit()
 
         # viz_entire_room_by_registering(dataset_dir, r)
         # scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
