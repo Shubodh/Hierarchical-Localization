@@ -19,7 +19,7 @@ import json
 
 
 from .utils.open3d_helper import custom_draw_geometry, load_view_point, viz_with_array_inp
-from .utils.camera_projection_helper import convert_depth_frame_to_pointcloud
+from .utils.camera_projection_helper import output_global_scan_rio #convert_depth_frame_to_pointcloud
 from .utils.parsers import parse_retrieval, names_to_pair, parse_pose_file_RIO, parse_camera_file_RIO
 from .utils.io import read_image
 from .utils.viz import plot_images, plot_matches, save_plot
@@ -74,43 +74,43 @@ def get_scan_pose(dataset_dir, rpath):
 
     return P_after_GICP
 
-def output_global_scan_rio(dataset_dir, r):
-    #dataset_dir: datasets/InLoc_like_RIO10/scene01_synth 
-    #r: database/cutouts/frame-001820.color.jpg
-    full_prefix_path = dataset_dir / r.parents[0]
-    r_stem = r.stem.replace("color", "")
+# def output_global_scan_rio(dataset_dir, r):
+#     #dataset_dir: datasets/InLoc_like_RIO10/scene01_synth 
+#     #r: database/cutouts/frame-001820.color.jpg
+#     full_prefix_path = dataset_dir / r.parents[0]
+#     r_stem = r.stem.replace("color", "")
 
-    camera_file = Path(full_prefix_path, 'camera.yaml')
-    pose_file   = Path(full_prefix_path, r_stem + 'pose.txt')
-    rgb_file    = Path(full_prefix_path, r_stem + 'color.jpg')
-    depth_file  = Path(full_prefix_path, r_stem + 'rendered.depth.png')
+#     camera_file = Path(full_prefix_path, 'camera.yaml')
+#     pose_file   = Path(full_prefix_path, r_stem + 'pose.txt')
+#     rgb_file    = Path(full_prefix_path, r_stem + 'color.jpg')
+#     depth_file  = Path(full_prefix_path, r_stem + 'rendered.depth.png')
 
-    assert camera_file.exists(), camera_file
-    assert   pose_file.exists(), pose_file  
-    assert    rgb_file.exists(), rgb_file   
-    assert  depth_file.exists(), depth_file 
+#     assert camera_file.exists(), camera_file
+#     assert   pose_file.exists(), pose_file  
+#     assert    rgb_file.exists(), rgb_file   
+#     assert  depth_file.exists(), depth_file 
 
-    rgb_img = read_image(rgb_file)
-    depth_raw = o3d.io.read_image(str(depth_file))
-    depth_img = np.asarray(depth_raw)
+#     rgb_img = read_image(rgb_file)
+#     depth_raw = o3d.io.read_image(str(depth_file))
+#     depth_img = np.asarray(depth_raw)
 
-    K, img_size =  parse_camera_file_RIO(camera_file) 
-    RT, RT_ctow = parse_pose_file_RIO(pose_file)
-    RT_wtoc = RT
-    # print(f"H & W: {img_size}, \n K:\n{K}, \n tf w to c:\n{RT} \n tf c to w:\n{RT_ctow} ")
-    height, width = img_size
-    cam_intrinsics_dict = {'fx':K[0,0] , 'fy':K[1,1] , 'cx':K[0,2] , 'cy':K[1,2] }
+#     K, img_size =  parse_camera_file_RIO(camera_file) 
+#     RT, RT_ctow = parse_pose_file_RIO(pose_file)
+#     RT_wtoc = RT
+#     # print(f"H & W: {img_size}, \n K:\n{K}, \n tf w to c:\n{RT} \n tf c to w:\n{RT_ctow} ")
+#     height, width = img_size
+#     cam_intrinsics_dict = {'fx':K[0,0] , 'fy':K[1,1] , 'cx':K[0,2] , 'cy':K[1,2] }
 
-    XYZ, RGB_has_bug = convert_depth_frame_to_pointcloud(rgb_img, depth_img, cam_intrinsics_dict)
-    # RGB_has_bug has issues currently. See the convert_depth_frame_to_pointcloud() for more info. 
-    global_pcd = (RT_ctow[:3, :3] @ XYZ.T) + RT_ctow[:3, 3].reshape((3,1))
-    global_pcd = global_pcd.T
-    global_pcd = (global_pcd.reshape((height, width, 3)))
-    debug = False
-    if debug:
-        viz_with_array_inp(XYZ, RGB_has_bug, coords_bool=True)
+#     XYZ, RGB_has_bug = convert_depth_frame_to_pointcloud(rgb_img, depth_img, cam_intrinsics_dict)
+#     # RGB_has_bug has issues currently. See the convert_depth_frame_to_pointcloud() for more info. 
+#     global_pcd = (RT_ctow[:3, :3] @ XYZ.T) + RT_ctow[:3, 3].reshape((3,1))
+#     global_pcd = global_pcd.T
+#     global_pcd = (global_pcd.reshape((height, width, 3)))
+#     debug = False
+#     if debug:
+#         viz_with_array_inp(XYZ, RGB_has_bug, coords_bool=True)
 
-    return global_pcd 
+#     return global_pcd 
 
 def cam_intrinsics_from_query_img(dataset_dir, q):
     full_prefix_path = dataset_dir / q.parents[0]
@@ -166,7 +166,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
 
             plot_images([read_image(dataset_dir / q), read_image(dataset_dir / r)])
             plot_matches(mkpq, mkpr)
-            pref_path = Path("outputs/graphVPR/rio_metric/viz/") 
+            pref_path = Path("outputs/graphVPR/rio_metric/viz/")
             path_sv =  pref_path / Path(dataset_dir.stem[:7] + "_q-" + Path(Path(q).stem).stem + "_r-" + Path(Path(r).stem).stem +  ".png")
             save_plot(path_sv)
             # print(f"saved plot at {path_sv}")
@@ -240,6 +240,12 @@ def main(dataset_dir, retrieval, features, matches, results,
         db = retrieval_dict[q]
         ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster(
             dataset_dir, q, db, feature_file, match_file, skip_matches)
+
+        refine_pose_b = True
+        # if refine_pose_b:
+        #     ret, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features(
+        #         dataset_dir, q, db, feature_file, match_file, skip_matches)
+
 
         poses[q] = (ret['qvec'], ret['tvec'])
         logs['loc'][q] = {

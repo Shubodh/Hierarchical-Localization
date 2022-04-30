@@ -1,10 +1,24 @@
 import cv2
+import glob
+import argparse
 import numpy as np
 import open3d as o3d
 import json
 import sys
+import os
+import torch
+from pathlib import Path
+from tqdm import tqdm
 
-# from .open3d_helper import viz_with_array_inp
+sys.path.append(str(Path(__file__).parent / '../../third_party'))
+from SuperGluePretrainedNetwork.models.superpoint import SuperPoint
+from SuperGluePretrainedNetwork.models.utils import read_image as read_image_sg
+        
+sys.path.append('../../') #TODO-Later: Not a permanent solution, should fix imports later.
+# from hloc.localize_rio import output_global_scan_rio
+from hloc.utils.io import read_image as read_image_hloc
+from hloc.utils.parsers import parse_pose_file_RIO, parse_camera_file_RIO
+from hloc.utils.open3d_helper import viz_with_array_inp
 
 
 def get_depth_at_pixel(depth_frame, pixel_x, pixel_y):
@@ -122,6 +136,44 @@ def convert_depth_frame_to_pointcloud(rgb_img,depth_image,  cam_intrinsics):
 
     return xyz, rgb
 
+def output_global_scan_rio(dataset_dir, r):
+    #dataset_dir: datasets/InLoc_like_RIO10/scene01_synth 
+    #r: database/cutouts/frame-001820.color.jpg
+    full_prefix_path = dataset_dir / r.parents[0]
+    r_stem = r.stem.replace("color", "")
+
+    camera_file = Path(full_prefix_path, 'camera.yaml')
+    pose_file   = Path(full_prefix_path, r_stem + 'pose.txt')
+    rgb_file    = Path(full_prefix_path, r_stem + 'color.jpg')
+    depth_file  = Path(full_prefix_path, r_stem + 'rendered.depth.png')
+
+    assert camera_file.exists(), camera_file
+    assert   pose_file.exists(), pose_file  
+    assert    rgb_file.exists(), rgb_file   
+    assert  depth_file.exists(), depth_file 
+
+    rgb_img = read_image_hloc(rgb_file)
+    depth_raw = o3d.io.read_image(str(depth_file))
+    depth_img = np.asarray(depth_raw)
+
+    K, img_size =  parse_camera_file_RIO(camera_file) 
+    RT, RT_ctow = parse_pose_file_RIO(pose_file)
+    RT_wtoc = RT
+    # print(f"H & W: {img_size}, \n K:\n{K}, \n tf w to c:\n{RT} \n tf c to w:\n{RT_ctow} ")
+    height, width = img_size
+    cam_intrinsics_dict = {'fx':K[0,0] , 'fy':K[1,1] , 'cx':K[0,2] , 'cy':K[1,2] }
+
+    XYZ, RGB_has_bug = convert_depth_frame_to_pointcloud(rgb_img, depth_img, cam_intrinsics_dict)
+    # RGB_has_bug has issues currently. See the convert_depth_frame_to_pointcloud() for more info. 
+    global_pcd = (RT_ctow[:3, :3] @ XYZ.T) + RT_ctow[:3, 3].reshape((3,1))
+    global_pcd = global_pcd.T
+    global_pcd = (global_pcd.reshape((height, width, 3)))
+    debug = False
+    if debug:
+        viz_with_array_inp(XYZ, RGB_has_bug, coords_bool=True)
+
+    return global_pcd 
+
 def load_depth_to_scan(depth_path, pos, rot):
     # 1. Converts depth to scan
     # 2. bring it to global frame from perspective frame
@@ -214,6 +266,91 @@ def get_clipped_pointcloud(pointcloud, boundary):
     return pointcloud
 
 
+def reestimate_pose_using_3D_features():
+    print(">> Pose Correction using the pre-estimated poses...")
+    refine_poses = []
+    num_inliers = []
+    for idx in tqdm(topk_inliers):
+        topk_idx = clustered_frames[idx]
+        pred_pose = pred_poses[idx]
+        pcfeat_pth = pcfeat_list[topk_idx // 36]
+
+        pred_kpts, pred_desc, pred_score, pred_xyz = scan2imgfeat_projection(pred_pose, pcfeat_pth, camera_parm, num_kpts=args.max_keypoints)
+
+        data = convert_superglue_db_format(inp0, pred0, pred_kpts, pred_desc, pred_score, device)
+        mkpts0, mkpts_xyz = refinement(data, pred_xyz)
+
+
+        if len(mkpts0) > 3:
+            result, inliers = do_pnp(mkpts0, mkpts_xyz, camera_parm, 0.00, reproj_error=args.reproj_err)
+            # cfg = {
+            #     'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
+            #     'width': width,
+            #     'height': height,
+            #     'params': [fx, fy, cx, cy]
+            # }
+            # ret = pycolmap.absolute_pose_estimation(
+            #     all_mkpq, all_mkp3d, cfg, 48.00)
+            # ret['cfg'] = cfg
+
+        else:
+            result = loc_failure
+            T_w2c = pred_pose
+            result = LocResult(False, result.num_inliers, result.inlier_ratio, T_w2c)
+
+        if result.success:
+            T_c2w = result.T
+            T_w2c = np.linalg.inv(T_c2w)
+
+        else:
+            T_w2c = pred_pose
+
+        refine_poses.append(T_w2c)
+        num_inliers.append(result.num_inliers)
+
+
+def scan2imgfeat_projection(pose, feat_pth, camera_parm, num_kpts=4096):
+
+    with open(feat_pth[0], 'rb') as handle:
+        scan_feat = pickle.load(handle)
+        scan_pts = scan_feat['ptcloud']
+        scan_desc = scan_feat['descriptors']
+        scan_score = scan_feat['scores']
+
+    img_size = camera_parm[:2, 2] * 2 # uv coordinate
+    H = int(img_size[1])
+    W = int(img_size[0])
+
+
+    proj_mat = np.matmul(camera_parm, pose[:3, :])
+    H_xyz = np.concatenate((scan_pts.T, np.ones((1, len(scan_pts)))), axis=0)
+
+    uv = np.matmul(proj_mat, H_xyz)
+    uv_norm = uv[2, :]
+    uv = np.divide(uv[:2, :], uv_norm)
+
+    front_idx = uv_norm > 0
+    uv = uv[:, front_idx]
+    desc = scan_desc[:, front_idx]
+    score = scan_score[front_idx]
+    ptcloud = scan_pts[front_idx, :]
+
+
+    visible_idx = (uv[0, :] >= 0) & (uv[1, :] >= 0) & (uv[0, :] < W) & (uv[1,:] < H)
+    uv = uv[:, visible_idx]
+    desc = desc[:, visible_idx]
+    score = score[visible_idx]
+    ptcloud = ptcloud[visible_idx, :]
+
+    score_idx = np.argsort(score)[::-1][:num_kpts]
+    uv = uv[:, score_idx]
+    desc = desc[:, score_idx]
+    score = score[score_idx]
+    ptcloud = ptcloud[score_idx, :]
+
+    kpts = np.floor(uv.T).astype(np.float32)
+
+    return kpts, desc, score, ptcloud
 
 def synthesize_img_given_viewpoint_long(pcd, viewpoint_json):
     # colors = colors * 255
@@ -412,3 +549,120 @@ def synthesize_img_given_viewpoint_short(pcd, viewpoint_json):
 #    #ax1.set_title("View 2 warped into View 1 \n according to the estimated transformation", fontsize='large')
 #    #ax1.axis('off')
 #
+def backprojection_to_3D_features_and_save_rio(save_dir, db_dir):
+    # local_feat_dir = os.path.join(save_dir, 'local_feats')
+    # if not os.path.exists(local_feat_dir): os.makedirs(local_feat_dir)
+    pc_feat_dir = os.path.join(save_dir, 'pc_feats')
+    if not os.path.exists(pc_feat_dir): os.makedirs(pc_feat_dir)
+
+    print(">> [Database] Local Feature Generation...")
+    torch.set_grad_enabled(False)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    print('Running inference on device \"{}\"'.format(device))
+    config = {'superpoint': {'nms_radius': 4,
+                             'keypoint_threshold': 0.005,
+                             'max_keypoints': 3000  #SuperPoint's default is -1. In hloc, we're using -1. In PCLoc, 3000.
+                             }}
+
+    superpoint = SuperPoint(config.get('superpoint', {})).eval().to(device)
+
+    feat_idx = 0
+    pc_idx = 0
+    cutout_list_rgb = glob.glob(os.path.join(db_dir, 'database/cutouts/*.color.jpg'))
+    cutout_list_depth = glob.glob(os.path.join(db_dir, 'database/cutouts/*.rendered.depth.png'))
+    # Need to make changes for RIO10 dataset: TODOs: 1-RIO, 2-RIO etc
+    # for bld_idx, bld_pth in enumerate(bld_list):
+        # print(' ', end='', flush=True)
+        # text = "Database Processing [{}/{}]".format(bld_idx+1, len(bld_list))
+        # 1-RIO: Rewrite the following for loops for RIO
+        # for scan_pth in tqdm(scan_list, desc=text):
+            # tr_scan_pth = glob.glob(os.path.join(args.db_dir, 'database/alignments', os.path.basename(bld_pth), 'transformations',
+            #                                      '*_trans_{}.txt'.format(os.path.basename(scan_pth))))[0]
+            # _, P_after = load_transformation(tr_scan_pth)
+
+            # cutout_list = glob.glob(os.path.join(scan_pth, '*.mat'))
+            # cutout_list.sort()
+
+    scan_desc = []
+    scan_score = []
+    scan_xyz = []
+
+    for cutout_pth in tqdm(cutout_list_rgb):
+        print(cutout_list_rgb)
+        sys.exit()
+
+        # image0, inp0, scales0 = read_image_sg(cutout_pth[:-4], device, [1200], 0, False)
+        image0, inp0, scales0 = read_image_sg(cutout_pth, device, [1200], 0, False)
+
+        # scan_data = io.loadmat(cutout_pth)
+        # xyz = scan_data['XYZcut']
+        r = Path(*cutout_pth.parts[3:])
+        print(f"DEBUG, check r path: {r, db_dir}")
+        sys.exit()
+        xyz = output_global_scan_rio(Path(db_dir), Path(r)) #equivalent to # scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
+
+        pred = superpoint({'image': inp0})
+
+        pred = {k: v[0].cpu().numpy() for k, v in pred.items()}
+        keypoints = (pred['keypoints'] * scales0).astype(int)
+        kpts_xyz = xyz[keypoints[:, 1], keypoints[:, 0], :]
+        H_kpts = np.concatenate((kpts_xyz.T, np.ones((1, len(kpts_xyz)))), axis=0)
+        # align_xyz = np.matmul(P_after, H_kpts)
+        print("Check if correct dimensions: are align_xyz and H_pts same?")
+        sys.exit()
+        align_xyz = H_kpts
+        align_xyz = np.divide(align_xyz[:3, :], align_xyz[3, :]).T
+
+        nan_idx = ~np.isnan(align_xyz).all(axis=1)
+
+        rm_keypoints = keypoints[nan_idx, :]
+        rm_descrptors = pred['descriptors'][:, nan_idx]
+        rm_scores = pred['scores'][nan_idx]
+        rm_xyz = align_xyz[nan_idx, :]
+
+        feat_cutout = dict()
+        feat_cutout['keypoints'] = rm_keypoints
+        feat_cutout['scores'] = rm_scores
+        feat_cutout['descriptors'] = rm_descrptors
+        feat_cutout['pts_xyz'] = rm_xyz
+
+        # Uncommmet bcz not saving local features. Just saving PCLoc 3D features.
+        # save_cutout_feat_fname = os.path.join(local_feat_dir, 'local_feat_{:05}.pkl'.format(feat_idx))
+        # with open(save_cutout_feat_fname, 'wb') as handle:
+        #     pickle.dump(feat_cutout, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        feat_idx += 1
+
+        scan_desc.append(rm_descrptors)
+        scan_score.append(rm_scores)
+        scan_xyz.append(rm_xyz)
+
+    total_score = np.concatenate(scan_score, 0)
+    total_desc = np.concatenate(scan_desc, 1)
+    total_xyz = np.concatenate(scan_xyz, 0)
+
+    pc_feat = dict()
+    pc_feat['ptcloud'] = total_xyz
+    pc_feat['descriptors'] = total_desc
+    pc_feat['scores'] = total_score
+
+
+    save_pcfeat_fname = os.path.join(pc_feat_dir, 'pcfeat_{:05}.pkl'.format(pc_idx))
+    with open(save_pcfeat_fname, 'wb') as handle:
+        pickle.dump(pc_feat, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    pc_idx += 1
+
+    print(">> Save Local Feature and PC Feature Completed...")
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    # local shub #db_dir should ls = database/ query/
+    # --db_dir /media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/datasets/InLoc_like_RIO10/scene01/ --save_dir /media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/outputs/rio/ICCV_TEST/
+
+    # on ADA #db_dir should ls = database/ query/
+    # --db_dir /scratch/saishubodh/InLoc_like_RIO10/sampling10/scene01_JUST/ 
+    # --save_dir /scratch/saishubodh/InLoc_dataset/outputs/rio/ICCV_TEST
+    parser.add_argument('--db_dir', default='/mnt/hdd1/Dataset/InLoc_dataset', help='Path to Inloc dataset', required=True)
+    parser.add_argument('--save_dir', default='/mnt/hdd2/Working/ICCV_TEST', help='Path to save database features (Output)', required=True)
+    args = parser.parse_args()
+    backprojection_to_3D_features_and_save_rio(args.save_dir, args.db_dir)
