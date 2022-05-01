@@ -6,6 +6,7 @@ import open3d as o3d
 import json
 import sys
 import os
+import pickle
 import torch
 from pathlib import Path
 from tqdm import tqdm
@@ -549,7 +550,7 @@ def synthesize_img_given_viewpoint_short(pcd, viewpoint_json):
 #    #ax1.set_title("View 2 warped into View 1 \n according to the estimated transformation", fontsize='large')
 #    #ax1.axis('off')
 #
-def backprojection_to_3D_features_and_save_rio(save_dir, db_dir):
+def backprojection_to_3D_features_and_save_rio(save_dir, db_dir, scene_id):
     # local_feat_dir = os.path.join(save_dir, 'local_feats')
     # if not os.path.exists(local_feat_dir): os.makedirs(local_feat_dir)
     pc_feat_dir = os.path.join(save_dir, 'pc_feats')
@@ -567,7 +568,6 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir):
     superpoint = SuperPoint(config.get('superpoint', {})).eval().to(device)
 
     feat_idx = 0
-    pc_idx = 0
     cutout_list_rgb = glob.glob(os.path.join(db_dir, 'database/cutouts/*.color.jpg'))
     cutout_list_depth = glob.glob(os.path.join(db_dir, 'database/cutouts/*.rendered.depth.png'))
     # Need to make changes for RIO10 dataset: TODOs: 1-RIO, 2-RIO etc
@@ -588,17 +588,15 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir):
     scan_xyz = []
 
     for cutout_pth in tqdm(cutout_list_rgb):
-        print(cutout_list_rgb)
-        sys.exit()
 
         # image0, inp0, scales0 = read_image_sg(cutout_pth[:-4], device, [1200], 0, False)
-        image0, inp0, scales0 = read_image_sg(cutout_pth, device, [1200], 0, False)
+        # TO-CHECK-Later: (In case bad results) Look at 3rd param `resize` below. In PCLoc for InLoc, they use 1600.
+        image0, inp0, scales0 = read_image_sg(cutout_pth, device, [-1], 0, False)
+        # print(cutout_pth, "\n", image0, "\n", inp0, "\n", scales0)
 
         # scan_data = io.loadmat(cutout_pth)
         # xyz = scan_data['XYZcut']
-        r = Path(*cutout_pth.parts[3:])
-        print(f"DEBUG, check r path: {r, db_dir}")
-        sys.exit()
+        r = Path(*Path(cutout_pth).parts[-3:])
         xyz = output_global_scan_rio(Path(db_dir), Path(r)) #equivalent to # scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
 
         pred = superpoint({'image': inp0})
@@ -607,9 +605,7 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir):
         keypoints = (pred['keypoints'] * scales0).astype(int)
         kpts_xyz = xyz[keypoints[:, 1], keypoints[:, 0], :]
         H_kpts = np.concatenate((kpts_xyz.T, np.ones((1, len(kpts_xyz)))), axis=0)
-        # align_xyz = np.matmul(P_after, H_kpts)
-        print("Check if correct dimensions: are align_xyz and H_pts same?")
-        sys.exit()
+        # align_xyz = np.matmul(P_after, H_kpts) #For InLoc, not relevant for RIO10
         align_xyz = H_kpts
         align_xyz = np.divide(align_xyz[:3, :], align_xyz[3, :]).T
 
@@ -619,6 +615,7 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir):
         rm_descrptors = pred['descriptors'][:, nan_idx]
         rm_scores = pred['scores'][nan_idx]
         rm_xyz = align_xyz[nan_idx, :]
+
 
         feat_cutout = dict()
         feat_cutout['keypoints'] = rm_keypoints
@@ -646,10 +643,12 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir):
     pc_feat['scores'] = total_score
 
 
-    save_pcfeat_fname = os.path.join(pc_feat_dir, 'pcfeat_{:05}.pkl'.format(pc_idx))
+    pc_idx = "pcfeat_scene" + str(scene_id) + ".pkl"
+    # save_pcfeat_fname = os.path.join(pc_feat_dir, 'pcfeat_{:05}.pkl'.format(pc_idx))
+    save_pcfeat_fname = os.path.join(pc_feat_dir, pc_idx)
     with open(save_pcfeat_fname, 'wb') as handle:
         pickle.dump(pc_feat, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    pc_idx += 1
+    # pc_idx += 1
 
     print(">> Save Local Feature and PC Feature Completed...")
 
@@ -662,7 +661,8 @@ if __name__ == '__main__':
     # on ADA #db_dir should ls = database/ query/
     # --db_dir /scratch/saishubodh/InLoc_like_RIO10/sampling10/scene01_JUST/ 
     # --save_dir /scratch/saishubodh/InLoc_dataset/outputs/rio/ICCV_TEST
-    parser.add_argument('--db_dir', default='/mnt/hdd1/Dataset/InLoc_dataset', help='Path to Inloc dataset', required=True)
-    parser.add_argument('--save_dir', default='/mnt/hdd2/Working/ICCV_TEST', help='Path to save database features (Output)', required=True)
+    parser.add_argument('--db_dir',   help='Path to Inloc dataset', required=True)
+    parser.add_argument('--save_dir', help='Path to save database features (Output)', required=True)
+    parser.add_argument('--scene_id', help='scene_id, ex: 01', required=True)
     args = parser.parse_args()
-    backprojection_to_3D_features_and_save_rio(args.save_dir, args.db_dir)
+    backprojection_to_3D_features_and_save_rio(args.save_dir, args.db_dir, args.scene_id)
