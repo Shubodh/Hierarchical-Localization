@@ -42,12 +42,12 @@ if __name__ == "__main__":
 
     pairs = Path('pairs/graphVPR/rio_metric/') #'pairs/inloc/'
     # loc_pairs = pairs / 'bruteforce40_samply.txt'#_tiny_0 #_cheating  # bruteforce40_samply.txt #_tiny_0 # top 40 retrieved by NetVLAD #-minustop3rooms
-    loc_pairs = pairs / 'bruteforce40_samply_viz_scene010507.txt'#_tiny_0 #_cheating  # bruteforce40_samply.txt #_tiny_0 # top 40 retrieved by NetVLAD #-minustop3rooms
+    loc_pairs = pairs / Path('bruteforce40_samply_viz_scene' +given_scene_id+ '.txt')#_tiny_0 #_cheating  # bruteforce40_samply.txt #_tiny_0 # top 40 retrieved by NetVLAD #-minustop3rooms
 
     outputs = Path('outputs/graphVPR/rio_metric/tiny/')  # where everything will be saved
 
     # Set config
-    dt_time = 'dt280422-t2112'
+    dt_time = 'dt030522-t0510'
     custom_info = '' #PINHOLE_cam
     feature_name  = 'superpoint_inloc'  # sift, superpoint_inloc, d2net-ss, netvlad
     matcher_name  = 'superglue' # NN-mutual, superglue

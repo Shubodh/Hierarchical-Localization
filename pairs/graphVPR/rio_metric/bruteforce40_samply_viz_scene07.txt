@@ -1,0 +1,8 @@
+query/frame-000165.color.jpg database/cutouts/frame-003810.color.jpg
+query/frame-000165.color.jpg database/cutouts/places-0174-000035.color.jpg
+query/frame-002505.color.jpg database/cutouts/frame-002230.color.jpg
+query/frame-002505.color.jpg database/cutouts/places-0174-000070.color.jpg
+query/places-0125-000004.color.jpg database/cutouts/frame-003810.color.jpg
+query/places-0125-000004.color.jpg database/cutouts/places-0174-000035.color.jpg
+query/places-0125-000054.color.jpg database/cutouts/frame-002230.color.jpg
+query/places-0125-000054.color.jpg database/cutouts/places-0174-000070.color.jpg
