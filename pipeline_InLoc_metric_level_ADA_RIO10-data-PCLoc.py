@@ -58,11 +58,11 @@ if __name__ == "__main__":
     outputs = Path('/data/InLoc_dataset/outputs/rio/' + output_end)  # where everything will be saved
 
     # Set config
-    dt_time = date +'-t1321'
+    dt_time = date +'-t1334'
     feature_name  = 'superpoint_inloc'  # sift, superpoint_inloc, d2net-ss, netvlad
     matcher_name  = 'superglue' # NN-mutual, superglue
-    skip_no = 10 # USed 40 for all scenes excluding 9th one
-    refine_pcloc = False
+    skip_no = 10 # USed 40 for all scenes excluding 9th one for d2net. For superglue i think it's 10.
+    refine_pcloc = True 
 
     testing_type ='scene'+ given_scene_id + '_sampling10_netvlad' + netvlad_no + '_' #'scene01_sampling10_' #'scene01_only_places_' #'scene01_and_places_'
 

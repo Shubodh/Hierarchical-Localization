@@ -151,7 +151,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         v = (m > -1)
 
         # Uncomment below if code is stopping. Likely because of number of correspondences < threshold.
-        # print(f"No of correspondences: {np.count_nonzero(v), q, r}")
+        print(f"No of correspondences: {np.count_nonzero(v), q, r}")
         if skip and (np.count_nonzero(v) < skip):
             continue
 
@@ -217,7 +217,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
 
 
 
-def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pcloc,
+def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pcloc=False,
          skip_matches=None):
 
     assert retrieval.exists(), retrieval
@@ -245,18 +245,22 @@ def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pc
 
         # print(ret)
         # refine_pcloc = False
-        on_ada = False
+        on_ada = True
         if refine_pcloc:
             fx, fy, cx, cy, height, width = cam_intrinsics_from_query_img(Path(dataset_dir), Path(q))
             camera_parm = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
             #ret, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features(
                 # ret['qvec'], ret['tvec'])#, dataset_dir, q, db, feature_file, match_file, skip_matches)
-            ret, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features(
+            ret_new, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features(
                 dataset_dir, q, ret['qvec'], ret['tvec'], on_ada, scene_id, camera_parm, height, width)#, dataset_dir, q, db, feature_file, match_file, skip_matches)
+            if ret_new['success'] == True:
+                print(type(ret_new['success']))
+                ret = ret_new
+
 
         # print(mkpq.shape, mkpr.shape, mkp3d.shape, indices.shape, num_matches)
         # sys.exit()
-        # print(ret)
+        #print(ret)
 
         poses[q] = (ret['qvec'], ret['tvec']) #pycolmap's quaternion convention is: w x y z
         logs['loc'][q] = {

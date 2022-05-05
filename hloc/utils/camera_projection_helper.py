@@ -291,7 +291,7 @@ def convert_superglue_db_format(img_tensor, pred_q, pred_kpts, pred_desc, pred_s
 def reestimate_pose_using_3D_features(dataset_dir, q, qvec, tvec, on_ada, scene_id, camera_parm, height, width):#, pcfeat_pth, camera_parm, max_keypoints):
     max_keypoints = 3000  #SuperPoint's default is -1. In hloc, we're using -1. In PCLoc, 3000.
     if on_ada:
-        pcfeat_base_pth = "/scratch/saishubodh/PCLoc_saved/ICCV_TEST/pc_feats/"
+        pcfeat_base_pth = "/data/InLoc_dataset/outputs/rio/ICCV_TEST/pc_feats/"
         pc_idx = "pcfeat_scene" + str(scene_id) + ".pkl"
         pcfeat_pth = pcfeat_base_pth + pc_idx
         assert Path(pcfeat_pth).exists(), Path(pcfeat_pth)
