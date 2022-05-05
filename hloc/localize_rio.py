@@ -19,7 +19,7 @@ import json
 
 
 from .utils.open3d_helper import custom_draw_geometry, load_view_point, viz_with_array_inp
-from .utils.camera_projection_helper import output_global_scan_rio #convert_depth_frame_to_pointcloud
+from .utils.camera_projection_helper import output_global_scan_rio, reestimate_pose_using_3D_features #convert_depth_frame_to_pointcloud
 from .utils.parsers import parse_retrieval, names_to_pair, parse_pose_file_RIO, parse_camera_file_RIO
 from .utils.io import read_image
 from .utils.viz import plot_images, plot_matches, save_plot
@@ -134,7 +134,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
     # cy = .5 * height
     # focal_length = 4032. * 28. / 36.
     fx, fy, cx, cy, height, width = cam_intrinsics_from_query_img(Path(dataset_dir), Path(q))
-    print(fx, fy, cx, cy, height, width)
+    # print(fx, fy, cx, cy, height, width)
     focal_length = fx
 
     all_mkpq = []
@@ -151,7 +151,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         v = (m > -1)
 
         # Uncomment below if code is stopping. Likely because of number of correspondences < threshold.
-        print(f"No of correspondences: {np.count_nonzero(v), q, r}")
+        # print(f"No of correspondences: {np.count_nonzero(v), q, r}")
         if skip and (np.count_nonzero(v) < skip):
             continue
 
@@ -169,10 +169,9 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
             pref_path = Path("outputs/graphVPR/rio_metric/viz/")
             path_sv =  pref_path / Path(dataset_dir.stem[:7] + "_q-" + Path(Path(q).stem).stem + "_r-" + Path(Path(r).stem).stem +  ".png")
             save_plot(path_sv)
-            # print(f"saved plot at {path_sv}")
+            # print(f"saved correspondences plot at {path_sv}")
 
             # plt.show()
-            # sys.exit()
 
         # viz_entire_room_by_registering(dataset_dir, r)
         # scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
@@ -210,12 +209,15 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
     ret = pycolmap.absolute_pose_estimation(
         all_mkpq, all_mkp3d, cfg, 48.00)
     ret['cfg'] = cfg
+    # print('hi bro')
+    # print(ret)
+    # print(all_mkpq.shape, all_mkpr.shape, all_mkp3d.shape, all_indices.shape, num_matches)
     return ret, all_mkpq, all_mkpr, all_mkp3d, all_indices, num_matches
 
 
 
 
-def main(dataset_dir, retrieval, features, matches, results,
+def main(dataset_dir, retrieval, features, matches, results, scene_id,
          skip_matches=None):
 
     assert retrieval.exists(), retrieval
@@ -241,13 +243,22 @@ def main(dataset_dir, retrieval, features, matches, results,
         ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster(
             dataset_dir, q, db, feature_file, match_file, skip_matches)
 
-        refine_pose_b = True
-        # if refine_pose_b:
-        #     ret, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features(
-        #         dataset_dir, q, db, feature_file, match_file, skip_matches)
+        # print(ret)
+        refine_pose_b = False
+        on_ada = False
+        if refine_pose_b:
+            fx, fy, cx, cy, height, width = cam_intrinsics_from_query_img(Path(dataset_dir), Path(q))
+            camera_parm = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
+            #ret, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features(
+                # ret['qvec'], ret['tvec'])#, dataset_dir, q, db, feature_file, match_file, skip_matches)
+            ret, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features(
+                dataset_dir, q, ret['qvec'], ret['tvec'], on_ada, scene_id, camera_parm, height, width)#, dataset_dir, q, db, feature_file, match_file, skip_matches)
 
+        # print(mkpq.shape, mkpr.shape, mkp3d.shape, indices.shape, num_matches)
+        # sys.exit()
+        # print(ret)
 
-        poses[q] = (ret['qvec'], ret['tvec'])
+        poses[q] = (ret['qvec'], ret['tvec']) #pycolmap's quaternion convention is: w x y z
         logs['loc'][q] = {
             'db': db,
             'PnP_ret': ret,

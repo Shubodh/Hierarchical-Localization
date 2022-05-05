@@ -8,11 +8,14 @@ import sys
 import os
 import pickle
 import torch
+import pycolmap
 from pathlib import Path
 from tqdm import tqdm
+from scipy.spatial.transform import Rotation as R
 
 sys.path.append(str(Path(__file__).parent / '../../third_party'))
 from SuperGluePretrainedNetwork.models.superpoint import SuperPoint
+from SuperGluePretrainedNetwork.models.superglue import SuperGlue
 from SuperGluePretrainedNetwork.models.utils import read_image as read_image_sg
         
 sys.path.append('../../') #TODO-Later: Not a permanent solution, should fix imports later.
@@ -21,6 +24,7 @@ from hloc.utils.io import read_image as read_image_hloc
 from hloc.utils.parsers import parse_pose_file_RIO, parse_camera_file_RIO
 from hloc.utils.open3d_helper import viz_with_array_inp
 
+from hloc.utils.refinements import Refinement_extended, Refinement_base
 
 def get_depth_at_pixel(depth_frame, pixel_x, pixel_y):
     """
@@ -266,61 +270,144 @@ def get_clipped_pointcloud(pointcloud, boundary):
     pointcloud = pointcloud[:,np.logical_and(pointcloud[1,:]<boundary[3], pointcloud[1,:]>boundary[2])]
     return pointcloud
 
-
-def reestimate_pose_using_3D_features():
-    print(">> Pose Correction using the pre-estimated poses...")
-    refine_poses = []
-    num_inliers = []
-    for idx in tqdm(topk_inliers):
-        topk_idx = clustered_frames[idx]
-        pred_pose = pred_poses[idx]
-        pcfeat_pth = pcfeat_list[topk_idx // 36]
-
-        pred_kpts, pred_desc, pred_score, pred_xyz = scan2imgfeat_projection(pred_pose, pcfeat_pth, camera_parm, num_kpts=args.max_keypoints)
-
-        data = convert_superglue_db_format(inp0, pred0, pred_kpts, pred_desc, pred_score, device)
-        mkpts0, mkpts_xyz = refinement(data, pred_xyz)
+def convert_superglue_db_format(img_tensor, pred_q, pred_kpts, pred_desc, pred_score, device):
 
 
-        if len(mkpts0) > 3:
-            result, inliers = do_pnp(mkpts0, mkpts_xyz, camera_parm, 0.00, reproj_error=args.reproj_err)
-            # cfg = {
-            #     'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
-            #     'width': width,
-            #     'height': height,
-            #     'params': [fx, fy, cx, cy]
-            # }
-            # ret = pycolmap.absolute_pose_estimation(
-            #     all_mkpq, all_mkp3d, cfg, 48.00)
-            # ret['cfg'] = cfg
+    pred_feat = {'keypoints': [torch.from_numpy(pred_kpts).to(device)],
+                 'descriptors': [torch.from_numpy(pred_desc).to(device)],
+                 'scores': [torch.from_numpy(pred_score).to(device)]}
+    pred = {}
+    pred = {**pred, **{k + '0': v for k, v in pred_q.items()}}
+    pred = {**pred, **{k + '1': v for k, v in pred_feat.items()}}
 
-        else:
-            result = loc_failure
-            T_w2c = pred_pose
-            result = LocResult(False, result.num_inliers, result.inlier_ratio, T_w2c)
+    data = {'image0': img_tensor, 'image1': img_tensor, **pred}
 
-        if result.success:
-            T_c2w = result.T
-            T_w2c = np.linalg.inv(T_c2w)
+    for k in data:
+        if isinstance(data[k], (list, tuple)):
+            data[k] = torch.stack(data[k])
 
-        else:
-            T_w2c = pred_pose
+    return data
 
-        refine_poses.append(T_w2c)
-        num_inliers.append(result.num_inliers)
+def reestimate_pose_using_3D_features(dataset_dir, q, qvec, tvec, on_ada, scene_id, camera_parm, height, width):#, pcfeat_pth, camera_parm, max_keypoints):
+    max_keypoints = 3000  #SuperPoint's default is -1. In hloc, we're using -1. In PCLoc, 3000.
+    if on_ada:
+        pcfeat_base_pth = "/scratch/saishubodh/PCLoc_saved/ICCV_TEST/pc_feats/"
+        pc_idx = "pcfeat_scene" + str(scene_id) + ".pkl"
+        pcfeat_pth = pcfeat_base_pth + pc_idx
+        assert Path(pcfeat_pth).exists(), Path(pcfeat_pth)
+        pcfeat_pth = [pcfeat_pth]
+    else: #local_shub
+        pcfeat_base_pth = "/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/outputs/rio/ICCV_TEST/pc_feats/"
+        pc_idx = "pcfeat_scene" + str(scene_id) + ".pkl"
+        pcfeat_pth = pcfeat_base_pth + pc_idx
+        assert Path(pcfeat_pth).exists(), Path(pcfeat_pth)
+        pcfeat_pth = [pcfeat_pth]
+
+    # qvec, tvec i get from hloc pipeline is wtoc or w2c.
+    torch.set_grad_enabled(False)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # print('Running inference on device \"{}\"'.format(device))
+    config = {'superpoint': {'weights': 'indoor', # IMPORTANT: TO-CHECK-Later: hloc by default uses indoor weights, but PCLoc uses outdoor.
+                            #'descriptor_dim': 256,
+                            #'keypoint_encoder': [32, 64, 128, 256],
+                            #'GNN_layers': ['self', 'cross'] * 9,
+                            'sinkhorn_iterations': 100,# TO-CHECK-Later: hloc by default uses 100, but PCLoc uses 20.
+                            'match_threshold': 0.2,
+                             }}
+    superglue = SuperGlue(config.get('superglue', {})).eval().to(device)
+    refinement = Refinement_base(superglue) # Later: Add Refinement_extended, Extended PC (Div matching)
+
+    RT_wtoc = np.zeros((4,4))
+    RT_wtoc[3,3] = 1 
+    qw, qx, qy, qz  = qvec 
+    RT_wtoc[0:3,0:3] = R.from_quat([qx, qy, qz, qw]).as_matrix()
+    RT_wtoc[0:3, 3] = tvec
+    # RT_ctow = np.copy(RT_wtoc)
+    # RT_ctow = np.linalg.inv(RT_wtoc)
+
+    pred_pose = RT_wtoc
 
 
-def scan2imgfeat_projection(pose, feat_pth, camera_parm, num_kpts=4096):
+    # print(">> Pose Correction using the pre-estimated poses...")
+    # refine_poses = []
+    # num_inliers = []
+    # for idx in tqdm(topk_inliers):
+    #     topk_idx = clustered_frames[idx]
+    #     pred_pose = pred_poses[idx]
+    #     pcfeat_pth = pcfeat_list[topk_idx // 36]
 
+    pred_kpts, pred_desc, pred_score, pred_xyz = scan2imgfeat_projection(pred_pose, pcfeat_pth, camera_parm, height, width, num_kpts=max_keypoints)
+    # image0, inp0, scales0 = read_image_sg(cutout_pth[:-4], device, [1200], 0, False)
+    # TO-CHECK-Later: (In case bad results) Look at 3rd param `resize` below. In PCLoc for InLoc, they use 1600.
+    query_pth = str(dataset_dir / q)
+    image0, inp0, scales0 = read_image_sg(query_pth, device, [-1], 0, False)
+    # print(cutout_pth, "\n", image0, "\n", inp0, "\n", scales0)
+    sg_config = {'superpoint': {'nms_radius': 4,
+                             'keypoint_threshold': 0.005,
+                             'max_keypoints': 3000  #SuperPoint's default is -1. In hloc, we're using -1. In PCLoc, 3000.
+                             }}
+
+    superpoint = SuperPoint(sg_config.get('superpoint', {})).eval().to(device)
+    pred0 = superpoint({'image': inp0})
+
+    data = convert_superglue_db_format(inp0, pred0, pred_kpts, pred_desc, pred_score, device)
+    mkpts0, mkpts_xyz = refinement(data, pred_xyz) #mkpts0 is query keypoints
+
+    fx, fy, cx, cy = camera_parm[0,0], camera_parm[1,1], camera_parm[0,2], camera_parm[1,2]
+    cfg = {
+        'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
+        'width': width,
+        'height': height,
+        'params': [fx, fy, cx, cy]
+    }
+    ret = pycolmap.absolute_pose_estimation(
+        mkpts0, mkpts_xyz, cfg, 48.00)
+    ret['cfg'] = cfg
+
+    # print("after")
+    # print(mkpts0.shape, pred_kpts.shape, mkpts_xyz.shape, mkpts0.shape[0])
+    # TO-CHECK-Later: Logs will be written WRONG. return ing wrong things.
+    return ret, mkpts0, mkpts0, mkpts_xyz, mkpts0[:,0], mkpts0.shape[0]
+    # return ret, all_mkpq,  all_mkpr, all_mkp3d, all_indices, num_matches
+    # TO-CHECK-Later: Better way to code the above is to exclusively handle failure cases as below commented code:
+#    if len(mkpts0) > 3:
+#        result, inliers = do_pnp(mkpts0, mkpts_xyz, camera_parm, 0.00, reproj_error=args.reproj_err)
+#        # cfg = {
+#        #     'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
+#        #     'width': width,
+#        #     'height': height,
+#        #     'params': [fx, fy, cx, cy]
+#        # }
+#
+#    else:
+#        result = loc_failure
+#        T_w2c = pred_pose
+#        result = LocResult(False, result.num_inliers, result.inlier_ratio, T_w2c)
+#
+#    if result.success:
+#        T_c2w = result.T
+#        T_w2c = np.linalg.inv(T_c2w)
+#
+#    else:
+#        T_w2c = pred_pose
+#
+#    refine_poses.append(T_w2c)
+#    num_inliers.append(result.num_inliers)
+
+
+def scan2imgfeat_projection(pose, feat_pth, camera_parm, height, width, num_kpts=4096):
+    # print("TO-CHECK-Later: Left this function as it is currently, inspect it later if results aren't good.")
     with open(feat_pth[0], 'rb') as handle:
         scan_feat = pickle.load(handle)
         scan_pts = scan_feat['ptcloud']
         scan_desc = scan_feat['descriptors']
         scan_score = scan_feat['scores']
 
-    img_size = camera_parm[:2, 2] * 2 # uv coordinate
-    H = int(img_size[1])
-    W = int(img_size[0])
+    # img_size = camera_parm[:2, 2] * 2 # uv coordinate
+    # H = int(img_size[1])
+    # W = int(img_size[0])
+    H, W = height, width
+    # print(H, W)
 
 
     proj_mat = np.matmul(camera_parm, pose[:3, :])
@@ -569,19 +656,7 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir, scene_id):
 
     feat_idx = 0
     cutout_list_rgb = glob.glob(os.path.join(db_dir, 'database/cutouts/*.color.jpg'))
-    cutout_list_depth = glob.glob(os.path.join(db_dir, 'database/cutouts/*.rendered.depth.png'))
-    # Need to make changes for RIO10 dataset: TODOs: 1-RIO, 2-RIO etc
-    # for bld_idx, bld_pth in enumerate(bld_list):
-        # print(' ', end='', flush=True)
-        # text = "Database Processing [{}/{}]".format(bld_idx+1, len(bld_list))
-        # 1-RIO: Rewrite the following for loops for RIO
-        # for scan_pth in tqdm(scan_list, desc=text):
-            # tr_scan_pth = glob.glob(os.path.join(args.db_dir, 'database/alignments', os.path.basename(bld_pth), 'transformations',
-            #                                      '*_trans_{}.txt'.format(os.path.basename(scan_pth))))[0]
-            # _, P_after = load_transformation(tr_scan_pth)
-
-            # cutout_list = glob.glob(os.path.join(scan_pth, '*.mat'))
-            # cutout_list.sort()
+    cutout_list_rgb.sort()
 
     scan_desc = []
     scan_score = []
@@ -641,7 +716,6 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir, scene_id):
     pc_feat['ptcloud'] = total_xyz
     pc_feat['descriptors'] = total_desc
     pc_feat['scores'] = total_score
-
 
     pc_idx = "pcfeat_scene" + str(scene_id) + ".pkl"
     # save_pcfeat_fname = os.path.join(pc_feat_dir, 'pcfeat_{:05}.pkl'.format(pc_idx))

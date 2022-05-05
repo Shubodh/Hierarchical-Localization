@@ -42,12 +42,12 @@ if __name__ == "__main__":
 
     pairs = Path('pairs/graphVPR/rio_metric/') #'pairs/inloc/'
     # loc_pairs = pairs / 'bruteforce40_samply.txt'#_tiny_0 #_cheating  # bruteforce40_samply.txt #_tiny_0 # top 40 retrieved by NetVLAD #-minustop3rooms
-    loc_pairs = pairs / 'bruteforce40_samply_viz_scene010507.txt'#_tiny_0 #_cheating  # bruteforce40_samply.txt #_tiny_0 # top 40 retrieved by NetVLAD #-minustop3rooms
+    loc_pairs = pairs / Path('bruteforce40_samply_viz_scene' +given_scene_id+ '.txt')#_tiny_0 #_cheating  # bruteforce40_samply.txt #_tiny_0 # top 40 retrieved by NetVLAD #-minustop3rooms
 
     outputs = Path('outputs/graphVPR/rio_metric/tiny/')  # where everything will be saved
 
     # Set config
-    dt_time = 'dt280422-t2112'
+    dt_time = 'dt030522-t0510'
     custom_info = '' #PINHOLE_cam
     feature_name  = 'superpoint_inloc'  # sift, superpoint_inloc, d2net-ss, netvlad
     matcher_name  = 'superglue' # NN-mutual, superglue
@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # Perform hierarchical localization using the precomputed retrieval and matches. Different from when localizing with Aachen, here we do not need a 3D SfM model here: the dataset already has 3D lidar scans. The file `InLoc_hloc_superpoint+superglue_netvlad40.txt` will contain the estimated query poses.
 
     localize_rio.main(
-        dataset, loc_pairs, feature_path, match_path, results,
+        dataset, loc_pairs, feature_path, match_path, results, given_scene_id,
         skip_matches=skip_no) #20. 10 is giving error currently, for 1 query, unable to find any matches > 20  # skip database images with too few matches
 
 
