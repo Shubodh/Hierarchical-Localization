@@ -733,8 +733,7 @@ if __name__ == '__main__':
     # --db_dir /media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/datasets/InLoc_like_RIO10/scene01/ --save_dir /media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/outputs/rio/ICCV_TEST/
 
     # on ADA #db_dir should ls = database/ query/
-    # --db_dir /scratch/saishubodh/InLoc_like_RIO10/sampling10/scene01_JUST/ 
-    # --save_dir /scratch/saishubodh/InLoc_dataset/outputs/rio/ICCV_TEST
+    # --db_dir /data/InLoc_like_RIO10/sampling10/scene01_JUST/ --save_dir /data/InLoc_dataset/outputs/rio/ICCV_TEST --scene_id 01
     parser.add_argument('--db_dir',   help='Path to Inloc dataset', required=True)
     parser.add_argument('--save_dir', help='Path to save database features (Output)', required=True)
     parser.add_argument('--scene_id', help='scene_id, ex: 01', required=True)
