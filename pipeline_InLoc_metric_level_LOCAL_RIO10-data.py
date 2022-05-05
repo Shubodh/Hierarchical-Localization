@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # Perform hierarchical localization using the precomputed retrieval and matches. Different from when localizing with Aachen, here we do not need a 3D SfM model here: the dataset already has 3D lidar scans. The file `InLoc_hloc_superpoint+superglue_netvlad40.txt` will contain the estimated query poses.
 
     localize_rio.main(
-        dataset, loc_pairs, feature_path, match_path, results,
+        dataset, loc_pairs, feature_path, match_path, results, given_scene_id,
         skip_matches=skip_no) #20. 10 is giving error currently, for 1 query, unable to find any matches > 20  # skip database images with too few matches
 
 
