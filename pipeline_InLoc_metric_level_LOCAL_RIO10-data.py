@@ -51,7 +51,8 @@ if __name__ == "__main__":
     custom_info = '' #PINHOLE_cam
     feature_name  = 'superpoint_inloc'  # sift, superpoint_inloc, d2net-ss, netvlad
     matcher_name  = 'superglue' # NN-mutual, superglue
-    skip_no = 10
+    skip_no = 20
+    refine_pcloc = True
 
     results = outputs / Path('RIO_hloc_LOCAL_TINY_' + custom_info + '_' + feature_name +'+' + matcher_name + '_skip' + str(skip_no) + '_' + dt_time + '.txt')  # the result file
     print(f"Starting localization on {dt_time}")
@@ -79,7 +80,7 @@ if __name__ == "__main__":
     # Perform hierarchical localization using the precomputed retrieval and matches. Different from when localizing with Aachen, here we do not need a 3D SfM model here: the dataset already has 3D lidar scans. The file `InLoc_hloc_superpoint+superglue_netvlad40.txt` will contain the estimated query poses.
 
     localize_rio.main(
-        dataset, loc_pairs, feature_path, match_path, results, given_scene_id,
+        dataset, loc_pairs, feature_path, match_path, results, given_scene_id, refine_pcloc,
         skip_matches=skip_no) #20. 10 is giving error currently, for 1 query, unable to find any matches > 20  # skip database images with too few matches
 
 

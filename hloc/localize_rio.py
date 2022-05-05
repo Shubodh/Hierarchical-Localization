@@ -217,7 +217,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
 
 
 
-def main(dataset_dir, retrieval, features, matches, results, scene_id,
+def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pcloc,
          skip_matches=None):
 
     assert retrieval.exists(), retrieval
@@ -244,9 +244,9 @@ def main(dataset_dir, retrieval, features, matches, results, scene_id,
             dataset_dir, q, db, feature_file, match_file, skip_matches)
 
         # print(ret)
-        refine_pose_b = False
+        # refine_pcloc = False
         on_ada = False
-        if refine_pose_b:
+        if refine_pcloc:
             fx, fy, cx, cy, height, width = cam_intrinsics_from_query_img(Path(dataset_dir), Path(q))
             camera_parm = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
             #ret, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features(
