@@ -11,7 +11,7 @@ import argparse
 from scipy.spatial.transform import Rotation as R
 
 
-sys.path.append('../../') #TODO-Later: Not a permanent solution, should fix imports later.
+sys.path.append('../../') 
 sys.path.append('../')
 from hloc.utils.parsers import parse_poses_from_file, parse_pose_file_RIO
 from hloc.utils.viz import plot_images, plot_images_simple
@@ -219,15 +219,14 @@ if __name__ == "__main__":
     parser.add_argument('--output_file_path', type=Path, required=False)
 
     args = parser.parse_args()
-    #convert_pose_file_format_wtoc_to_ctow(**args.__dict__)
 
     # 1. above
     pose_path = args.pose_path
     scene_id = args.scene_id
-    #convert_pose_file_format_wtoc_to_ctow_RIO_format(pose_path, scene_id)
+    convert_pose_file_format_wtoc_to_ctow_RIO_format(pose_path, scene_id)
 
     # 2. above
     folder_path = args.folder_path
     output_file_path = args.output_file_path
-    write_individual_pose_files_to_single_output(folder_path, output_file_path, scene_id)
+    #write_individual_pose_files_to_single_output(folder_path, output_file_path, scene_id)
 

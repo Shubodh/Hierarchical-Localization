@@ -288,7 +288,7 @@ def convert_superglue_db_format(img_tensor, pred_q, pred_kpts, pred_desc, pred_s
 
     return data
 
-def reestimate_pose_using_3D_features(dataset_dir, q, qvec, tvec, on_ada, scene_id, camera_parm, height, width):#, pcfeat_pth, camera_parm, max_keypoints):
+def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, scene_id, camera_parm, height, width):#, pcfeat_pth, camera_parm, max_keypoints):
     max_keypoints = 3000  #SuperPoint's default is -1. In hloc, we're using -1. In PCLoc, 3000.
     if on_ada:
         pcfeat_base_pth = "/data/InLoc_dataset/outputs/rio/ICCV_TEST/pc_feats/"
@@ -352,6 +352,9 @@ def reestimate_pose_using_3D_features(dataset_dir, q, qvec, tvec, on_ada, scene_
 
     data = convert_superglue_db_format(inp0, pred0, pred_kpts, pred_desc, pred_score, device)
     mkpts0, mkpts_xyz = refinement(data, pred_xyz) #mkpts0 is query keypoints
+    # print(mkpts0.shape, len(mkpts0))
+    # print(pred_pose)
+    # sys.exit()
 
     fx, fy, cx, cy = camera_parm[0,0], camera_parm[1,1], camera_parm[0,2], camera_parm[1,2]
     cfg = {

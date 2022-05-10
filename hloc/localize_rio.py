@@ -19,7 +19,7 @@ import json
 
 
 from .utils.open3d_helper import custom_draw_geometry, load_view_point, viz_with_array_inp
-from .utils.camera_projection_helper import output_global_scan_rio, reestimate_pose_using_3D_features #convert_depth_frame_to_pointcloud
+from .utils.camera_projection_helper import output_global_scan_rio, reestimate_pose_using_3D_features_pcloc #convert_depth_frame_to_pointcloud
 from .utils.parsers import parse_retrieval, names_to_pair, parse_pose_file_RIO, parse_camera_file_RIO
 from .utils.io import read_image
 from .utils.viz import plot_images, plot_matches, save_plot
@@ -151,7 +151,7 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         v = (m > -1)
 
         # Uncomment below if code is stopping. Likely because of number of correspondences < threshold.
-        print(f"No of correspondences: {np.count_nonzero(v), q, r}")
+        #print(f"No of correspondences: {np.count_nonzero(v), q, r}")
         if skip and (np.count_nonzero(v) < skip):
             continue
 
@@ -187,31 +187,51 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         all_mkp3d.append(mkp3d[valid])
         all_indices.append(np.full(np.count_nonzero(valid), i))
 
-    all_mkpq = np.concatenate(all_mkpq, 0)
-    all_mkpr = np.concatenate(all_mkpr, 0)
-    all_mkp3d = np.concatenate(all_mkp3d, 0)
-    all_indices = np.concatenate(all_indices, 0)
+    if len(all_mkpq) == 0:
+        T_w2c = np.array([[1.0, 0.0, 0.0, 1000.0],
+                        [0.0, 1.0, 0.0, 1000.0],
+                        [0.0, 0.0, 1.0, 1000.0],
+                        [0.0, 0.0, 0.0, 1.0]])
+        qx_c, qy_c, qz_c, qw_c = R.from_matrix(T_w2c[0:3,0:3]).as_quat()
+        tx_c, ty_c, tz_c = T_w2c[0:3,3]
+        ret = {'success': False}
+        ret['qvec'] = np.array([qw_c, qx_c, qy_c, qz_c])
+        ret['tvec'] = np.array([tx_c, ty_c, tz_c])
+        cfg = {
+            'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
+            'width': width,
+            'height': height,
+            'params': [fx, fy, cx, cy]
+        }
+        ret['cfg'] = cfg
+        #print(ret)
+        #sys.exit()
+    else:
+        all_mkpq = np.concatenate(all_mkpq, 0)
+        all_mkpr = np.concatenate(all_mkpr, 0)
+        all_mkp3d = np.concatenate(all_mkp3d, 0)
+        all_indices = np.concatenate(all_indices, 0)
 
-    # cfg = {
-    #     'model': 'SIMPLE_PINHOLE',
-    #     'width': width,
-    #     'height': height,
-    #     'params': [focal_length, cx, cy]
-    # }
+        # cfg = {
+        #     'model': 'SIMPLE_PINHOLE',
+        #     'width': width,
+        #     'height': height,
+        #     'params': [focal_length, cx, cy]
+        # }
 
-    #NOTE-3: using focal_length fx, fy currently. Also NOT using distortion params. (pycolmap allows it) Look at 'OPENCV' model in https://github.com/colmap/colmap/blob/master/src/base/camera_models.h
-    cfg = {
-        'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
-        'width': width,
-        'height': height,
-        'params': [fx, fy, cx, cy]
-    }
-    ret = pycolmap.absolute_pose_estimation(
-        all_mkpq, all_mkp3d, cfg, 48.00)
-    ret['cfg'] = cfg
-    # print('hi bro')
-    # print(ret)
-    # print(all_mkpq.shape, all_mkpr.shape, all_mkp3d.shape, all_indices.shape, num_matches)
+        #NOTE-3: using focal_length fx, fy currently. Also NOT using distortion params. (pycolmap allows it) Look at 'OPENCV' model in https://github.com/colmap/colmap/blob/master/src/base/camera_models.h
+        cfg = {
+            'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
+            'width': width,
+            'height': height,
+            'params': [fx, fy, cx, cy]
+        }
+        ret = pycolmap.absolute_pose_estimation(
+            all_mkpq, all_mkp3d, cfg, 48.00)
+        ret['cfg'] = cfg
+        # print('hi bro')
+        # print(ret)
+        # print(all_mkpq.shape, all_mkpr.shape, all_mkp3d.shape, all_indices.shape, num_matches)
     return ret, all_mkpq, all_mkpr, all_mkp3d, all_indices, num_matches
 
 
@@ -243,23 +263,25 @@ def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pc
         ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster(
             dataset_dir, q, db, feature_file, match_file, skip_matches)
 
+
         # print(ret)
         # refine_pcloc = False
         on_ada = True
         if refine_pcloc:
             fx, fy, cx, cy, height, width = cam_intrinsics_from_query_img(Path(dataset_dir), Path(q))
             camera_parm = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
-            #ret, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features(
+            #ret, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features_pcloc(
                 # ret['qvec'], ret['tvec'])#, dataset_dir, q, db, feature_file, match_file, skip_matches)
-            ret_new, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features(
+            ret_new, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features_pcloc(
                 dataset_dir, q, ret['qvec'], ret['tvec'], on_ada, scene_id, camera_parm, height, width)#, dataset_dir, q, db, feature_file, match_file, skip_matches)
-            if ret_new['success'] == True:
-                print(type(ret_new['success']))
+            if ret_new['success']:
+                # print(ret_new['success'])
                 ret = ret_new
+            #else: ret = ret
 
 
         # print(mkpq.shape, mkpr.shape, mkp3d.shape, indices.shape, num_matches)
-        # sys.exit()
+        #sys.exit()
         #print(ret)
 
         poses[q] = (ret['qvec'], ret['tvec']) #pycolmap's quaternion convention is: w x y z

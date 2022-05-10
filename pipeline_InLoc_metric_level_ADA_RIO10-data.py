@@ -61,7 +61,7 @@ if __name__ == "__main__":
     dt_time = date +'-t1321'
     feature_name  = 'superpoint_inloc'  # sift, superpoint_inloc, d2net-ss, netvlad
     matcher_name  = 'superglue' # NN-mutual, superglue
-    skip_no = 10 # USed 40 for all scenes excluding 9th one
+    skip_no = 3 #20 #10 # USed 40 for all scenes excluding 9th one for d2net. For superglue, even 10 stops. PCLoc uses 3 lol. so using 3 now.
     refine_pcloc = False
 
     testing_type ='scene'+ given_scene_id + '_sampling10_netvlad' + netvlad_no + '_' #'scene01_sampling10_' #'scene01_only_places_' #'scene01_and_places_'
