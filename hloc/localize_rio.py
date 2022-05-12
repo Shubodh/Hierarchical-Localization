@@ -235,6 +235,122 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
     return ret, all_mkpq, all_mkpr, all_mkp3d, all_indices, num_matches
 
 
+def pose_from_cluster_tf_idea_simple(dataset_dir, q, retrieved, feature_file, match_file,
+                      skip=None):
+    """
+    tf_idea_simple Idea: Apply tf to ref images to go back
+    Steps: 1. NetVLAD top40 -> Apply -1m tf (or places - center to pose idea) -> these are places
+    2. With 3D features for whole world beforehand, project 3D features on places
+    3. now matching query <> places
+    """
+    # height, width = cv2.imread(str(dataset_dir / q)).shape[:2]
+    # #print(width, height)
+    # cx = .5 * width 
+    # cy = .5 * height
+    # focal_length = 4032. * 28. / 36.
+    fx, fy, cx, cy, height, width = cam_intrinsics_from_query_img(Path(dataset_dir), Path(q))
+    # print(fx, fy, cx, cy, height, width)
+    focal_length = fx
+
+    all_mkpq = []
+    all_mkpr = []
+    all_mkp3d = []
+    all_indices = []
+    kpq = feature_file[q]['keypoints'].__array__()
+    num_matches = 0
+
+    for i, r in enumerate(retrieved):
+        print("debuggg")
+        print(r)
+        sys.exit()
+        kpr = feature_file[r]['keypoints'].__array__()
+        pair = names_to_pair(q, r)
+        m = match_file[pair]['matches0'].__array__()
+        v = (m > -1)
+
+        # Uncomment below if code is stopping. Likely because of number of correspondences < threshold.
+        #print(f"No of correspondences: {np.count_nonzero(v), q, r}")
+        if skip and (np.count_nonzero(v) < skip):
+            continue
+
+        mkpq, mkpr = kpq[v], kpr[m[v]]
+        num_matches += len(mkpq)
+
+        # VISUALIZATION DEBUG:
+        viz_or_save_plots = False
+        if viz_or_save_plots:
+            # print(dataset_dir, Path(q).stem, Path(Path(r).stem).stem)
+            # print(f"Number of matches: {mkpq.shape[0]}")
+
+            plot_images([read_image(dataset_dir / q), read_image(dataset_dir / r)])
+            plot_matches(mkpq, mkpr)
+            pref_path = Path("outputs/graphVPR/rio_metric/viz/")
+            path_sv =  pref_path / Path(dataset_dir.stem[:7] + "_q-" + Path(Path(q).stem).stem + "_r-" + Path(Path(r).stem).stem +  ".png")
+            save_plot(path_sv)
+            # print(f"saved correspondences plot at {path_sv}")
+
+            # plt.show()
+
+        # viz_entire_room_by_registering(dataset_dir, r)
+        # scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
+        scan_r = output_global_scan_rio(Path(dataset_dir), Path(r))
+        # Note that width height of query different from reference
+        #print(f"DEBUG 1:  width, height - {scan_r.shape, width, height}")
+        mkp3d, valid = interpolate_scan(scan_r, mkpr)
+        #### Tr = get_scan_pose(dataset_dir, r) #Already in global frame. This was needed for InLoc to take it from room -> global (there were 3 there: local, room, global)
+        #### mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
+
+        all_mkpq.append(mkpq[valid])
+        all_mkpr.append(mkpr[valid])
+        all_mkp3d.append(mkp3d[valid])
+        all_indices.append(np.full(np.count_nonzero(valid), i))
+
+    if len(all_mkpq) == 0:
+        T_w2c = np.array([[1.0, 0.0, 0.0, 1000.0],
+                        [0.0, 1.0, 0.0, 1000.0],
+                        [0.0, 0.0, 1.0, 1000.0],
+                        [0.0, 0.0, 0.0, 1.0]])
+        qx_c, qy_c, qz_c, qw_c = R.from_matrix(T_w2c[0:3,0:3]).as_quat()
+        tx_c, ty_c, tz_c = T_w2c[0:3,3]
+        ret = {'success': False}
+        ret['qvec'] = np.array([qw_c, qx_c, qy_c, qz_c])
+        ret['tvec'] = np.array([tx_c, ty_c, tz_c])
+        cfg = {
+            'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
+            'width': width,
+            'height': height,
+            'params': [fx, fy, cx, cy]
+        }
+        ret['cfg'] = cfg
+        #print(ret)
+        #sys.exit()
+    else:
+        all_mkpq = np.concatenate(all_mkpq, 0)
+        all_mkpr = np.concatenate(all_mkpr, 0)
+        all_mkp3d = np.concatenate(all_mkp3d, 0)
+        all_indices = np.concatenate(all_indices, 0)
+
+        # cfg = {
+        #     'model': 'SIMPLE_PINHOLE',
+        #     'width': width,
+        #     'height': height,
+        #     'params': [focal_length, cx, cy]
+        # }
+
+        #NOTE-3: using focal_length fx, fy currently. Also NOT using distortion params. (pycolmap allows it) Look at 'OPENCV' model in https://github.com/colmap/colmap/blob/master/src/base/camera_models.h
+        cfg = {
+            'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
+            'width': width,
+            'height': height,
+            'params': [fx, fy, cx, cy]
+        }
+        ret = pycolmap.absolute_pose_estimation(
+            all_mkpq, all_mkp3d, cfg, 48.00)
+        ret['cfg'] = cfg
+        # print('hi bro')
+        # print(ret)
+        # print(all_mkpq.shape, all_mkpr.shape, all_mkp3d.shape, all_indices.shape, num_matches)
+    return ret, all_mkpq, all_mkpr, all_mkp3d, all_indices, num_matches
 
 
 def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pcloc=False,
@@ -260,7 +376,9 @@ def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pc
     logging.info('Starting localization...')
     for q in tqdm(queries):
         db = retrieval_dict[q]
-        ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster(
+        #ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster(
+        #    dataset_dir, q, db, feature_file, match_file, skip_matches)
+        ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster_tf_idea_simple(
             dataset_dir, q, db, feature_file, match_file, skip_matches)
 
 
