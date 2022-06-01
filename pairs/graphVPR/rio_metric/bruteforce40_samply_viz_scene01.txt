@@ -1,5 +1,6 @@
 query/frame-002018.color.jpg database/cutouts/frame-004309.color.jpg
 query/frame-002018.color.jpg database/cutouts/places-0140-000109.color.jpg
+query/frame-002018.color.jpg database/cutouts/places-0140-000109.color.jpg
 query/frame-001575.color.jpg database/cutouts/frame-000194.color.jpg
 query/frame-001575.color.jpg database/cutouts/places-0075-000046.color.jpg
 query/places-0126-000069.color.jpg database/cutouts/frame-004309.color.jpg

@@ -270,6 +270,56 @@ def get_clipped_pointcloud(pointcloud, boundary):
     pointcloud = pointcloud[:,np.logical_and(pointcloud[1,:]<boundary[3], pointcloud[1,:]>boundary[2])]
     return pointcloud
 
+def moveback_tf_simple_given_pose(RT_wtoc, moveback_distance=0.5):
+    """ 
+    Basically, tf "current pose" by 0.5 m backward in egocentric view and return that new pose in global frame.
+    "Current pose" is extrinsics in camera projection terminology, RT_wtoc.
+    x = K [R t]_wtoc X_w = K X_c; where X_c = RT_wtoc @ X_w.
+    RIO10 local frame convention: Z forward, X right, Y below.
+    Now what we want to apply camera projection over X_c_new where 
+    X_c_new = T_mb @ X_c; T_mb's R = [I] and t = [0, 0, +0.5], basically I want to see points 0.5m behind me also, so I will move them in front of me.
+    X_c_new = T_mb @ RT_wtoc @ X_w. Therefore, new extrinsics would now be:
+    RT_wtoc_new = T_mb @ RT_wtoc
+    NOTE: DO remember X_c should be full point cloud, not trimmed point cloud.
+    """
+    T_mb = np.eye(4,4)
+    T_mb[2,3] = moveback_distance
+    RT_wtoc_new = T_mb @ RT_wtoc
+    return RT_wtoc_new 
+
+def move_rotate_leftright_tf_simple_given_pose(RT_wtoc, rotate_left_or_right="left"):
+    """ 
+    Basically, tf "current pose" by rotating L or R in egocentric view and return that new pose in global frame.
+    "Current pose" is extrinsics in camera projection terminology, RT_wtoc.
+    x = K [R t]_wtoc X_w = K X_c; where X_c = RT_wtoc @ X_w.
+    RIO10 local frame convention: Z forward, X right, Y below.
+    Now what we want to apply camera projection over X_c_new where 
+    X_c_new = T_mb @ X_c; T_mb's R = [R(theta)] and t = [0, 0, 0], 
+
+    R(theta) -- If turning left: Remember y-axis is facing below
+        I will rotate points 90 deg such that left point are in front of me,
+        So, [R.from_euler('y', 90..) @ X_c] will rotate points rightwards such that left point are in front. (Rotator-transform equivalence: 1. Vector or operator)
+
+    X_c_new = T_mb @ RT_wtoc @ X_w. Therefore, new extrinsics would now be:
+    RT_wtoc_new = T_mb @ RT_wtoc
+    NOTE: DO remember X_c should be full point cloud, not trimmed point cloud.
+    """
+    R_left = R.from_euler('y', 90, degrees=True) 
+    print(R_left) #should be [[0,0,1],[0,1,0],[-1,0,0]]
+    sys.exit()
+    R_right = R.from_euler('y', -90, degrees=True)
+
+    T_mb = np.eye(4,4)
+    if rotate_left_or_right == "left":
+        T_mb[:3, :3] = R_left
+    elif rotate_left_or_right == "right":
+        T_mb[:3, :3] = R_right
+    else:
+        raise ValueError(f'Wrong argument {rotate_left_or_right}, should be left or right')
+
+    RT_wtoc_new = T_mb @ RT_wtoc
+    return RT_wtoc_new 
+
 def convert_superglue_db_format(img_tensor, pred_q, pred_kpts, pred_desc, pred_score, device):
 
 
@@ -351,7 +401,7 @@ def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, 
     pred0 = superpoint({'image': inp0})
 
     data = convert_superglue_db_format(inp0, pred0, pred_kpts, pred_desc, pred_score, device)
-    mkpts0, mkpts_xyz = refinement(data, pred_xyz) #mkpts0 is query keypoints
+    mkpts0, mkpts_xyz, mkpts1 = refinement(data, pred_xyz) #mkpts0 is query keypoints
     # print(mkpts0.shape, len(mkpts0))
     # print(pred_pose)
     # sys.exit()
@@ -369,8 +419,8 @@ def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, 
 
     # print("after")
     # print(mkpts0.shape, pred_kpts.shape, mkpts_xyz.shape, mkpts0.shape[0])
-    # TO-CHECK-Later: Logs will be written WRONG. return ing wrong things.
-    return ret, mkpts0, mkpts0, mkpts_xyz, mkpts0[:,0], mkpts0.shape[0]
+    # TO-CHECK-Later: INDICES written WRONG. I think there's no way to return correct indices, but once check later again.
+    return ret, mkpts0, mkpts1, mkpts_xyz, mkpts0[:,0], mkpts0.shape[0]
     # return ret, all_mkpq,  all_mkpr, all_mkp3d, all_indices, num_matches
     # TO-CHECK-Later: Better way to code the above is to exclusively handle failure cases as below commented code:
 #    if len(mkpts0) > 3:

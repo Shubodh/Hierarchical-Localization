@@ -124,6 +124,29 @@ def write_individual_pose_files_to_single_output(folder_path, output_file_path, 
     write_results_to_file(output_file_path, img_poses_list_final)
     print(f"Converted individual pose files in {str(folder_path)} to single output file {str(output_file_path)}")
 
+def return_individual_pose_files_as_single_list(folder_path, scene_id):
+    """ 
+    Given a folder as input, 
+    1. read all individual pose.txt files (RIO10 format, ctow: 4*4 matrix in 4 lines) 
+    2. Optional: Convert Rt to quat. Default: RT_ctow only, not quat.
+    3. return it as a list in ctow
+    """
+    is_quat = False
+    folder_path = Path(folder_path)
+    pose_files = sorted(list(folder_path.glob('*pose.txt')))
+    img_poses_list_final = []
+    for pose_file in pose_files:
+        _, RT_ctow = parse_pose_file_RIO(pose_file)
+        if is_quat:
+            qx_c, qy_c, qz_c, qw_c = R.from_matrix(RT_ctow[0:3,0:3]).as_quat()
+            tx_c, ty_c, tz_c = RT_ctow[0:3,3]
+            pose_c = [qw_c, qx_c, qy_c, qz_c, tx_c, ty_c, tz_c]
+
+        img_poses_list_final.append(RT_ctow)
+        
+        # print(pose_file)
+    return img_poses_list_final
+    
 
 def convert_pose_file_format_wtoc_to_ctow(pose_path):
     # file_pose = Path("outputs/rio/full/RIO_hloc_d2net-ss+NN-mutual_skip10_dt160222-t0411.txt")
