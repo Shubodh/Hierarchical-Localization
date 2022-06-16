@@ -376,10 +376,10 @@ def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pc
     logging.info('Starting localization...')
     for q in tqdm(queries):
         db = retrieval_dict[q]
-        #ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster(
-        #    dataset_dir, q, db, feature_file, match_file, skip_matches)
-        ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster_tf_idea_simple(
-            dataset_dir, q, db, feature_file, match_file, skip_matches)
+        ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster(
+           dataset_dir, q, db, feature_file, match_file, skip_matches)
+        # ret, mkpq, mkpr, mkp3d, indices, num_matches = pose_from_cluster_tf_idea_simple(
+        #     dataset_dir, q, db, feature_file, match_file, skip_matches)
 
 
         # print(ret)
@@ -402,7 +402,15 @@ def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pc
         #sys.exit()
         #print(ret)
 
-        poses[q] = (ret['qvec'], ret['tvec']) #pycolmap's quaternion convention is: w x y z
+        try:
+            poses[q] = (ret['qvec'], ret['tvec']) #pycolmap's quaternion convention is: w x y z
+        except KeyError:
+            print("KeyError")
+            print(ret, num_matches, skip_matches, dataset_dir, q, db)
+            #pass
+            sys.exit()
+
+
         logs['loc'][q] = {
             'db': db,
             'PnP_ret': ret,
