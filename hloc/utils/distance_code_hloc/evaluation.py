@@ -2,9 +2,45 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.linalg import logm
 from scipy.spatial.transform import Rotation as R
+from pyquaternion import Quaternion
+import sys
 
 from typing import Tuple, List, Dict
 from tabulate import tabulate
+
+def quaternion_inverse(given_quat):
+    """
+    Input: scipy format - scalar LAST. numpy.array([b, c, d, a]) where quaternion is a + bi + cj + dk
+    or in wxyz format, w is scalar below
+    Output: numpy array in same format but inverse of input
+    """
+    #pyquaternion library: Scalar FIRST: numpy.array([a, b, c, d]) where quaternion is a + bi + cj + dk
+    qx, qy, qz, qw = given_quat #scalar last
+    given_quat_scalar_first = np.array([qw, qx, qy, qz]) #scalar first
+    quat_obj = Quaternion(array=given_quat_scalar_first) 
+    inv_quat = quat_obj.inverse
+    inv_quat_np = inv_quat.elements
+
+    iqw, iqx, iqy, iqz  = inv_quat_np #scalar first
+    inv_quat_np_scalar_first = np.array([iqx, iqy, iqz, iqw]) #scalar  last
+    return  inv_quat_np_scalar_first
+
+
+def get_rotation_error_using_arccos_of_trace_of_rotation(R_pred: np.ndarray, R_gt: np.ndarray) -> float:
+    # See https://www.notion.so/saishubodh/Evaluation-Metrics-for-R-t-with-GT-Rotation-Translation-error-with-Ground-truth-476db686933048d5b74de36b382e0eec
+        # measure the angular distance between two rotation matrice
+    # R1,R2: [n, 3, 3]
+    # Returns angle in degrees
+    if R_pred.shape == (3,3):
+        R_pred = R_pred[np.newaxis,:]
+    if R_gt.shape == (3,3):
+        R_gt = R_gt[np.newaxis,:]
+    n = R_gt.shape[0]
+    trace_idx = [0,4,8]
+    trace = np.matmul(R_pred, R_gt.transpose(0,2,1)).reshape(n,-1)[:,trace_idx].sum(1)
+    metric_in_degrees = np.arccos(((trace - 1)/2).clip(-1,1)) / np.pi * 180.0
+    return metric_in_degrees[0]
+
 
 def get_rotation_error_using_quaternion_dot(R_pred: np.ndarray, R_gt: np.ndarray) -> float:
     # See https://www.notion.so/saishubodh/Evaluation-Metrics-for-R-t-with-GT-Rotation-Translation-error-with-Ground-truth-476db686933048d5b74de36b382e0eec
@@ -20,12 +56,18 @@ def get_rotation_error_using_quaternion_dot(R_pred: np.ndarray, R_gt: np.ndarray
     R_pred_obj, R_gt_obj = R.from_matrix(R_pred), R.from_matrix(R_gt)
     quat_pred, quat_gt = R_pred_obj.as_quat(), R_gt_obj.as_quat()
 
-    # print("check again by debugging, visualizing later, not 100% sure if below code is correct")
-    # TO-Check-1: Should quat be unit vectors? 
-    d1 = abs(np.dot(quat_pred, quat_gt))
+    # quat_pred_inv, quat_gt_inv = quaternion_inverse(quat_pred), quaternion_inverse(quat_gt)
+    # quat_pred_inv_i, quat_gt_inv_i = quaternion_inverse(quat_pred_inv), quaternion_inverse(quat_gt_inv)
+    # print(quat_pred, quat_gt)
+    # print(quat_pred_inv, quat_gt_inv)
+    # print(quat_pred_inv_i, quat_gt_inv_i)
+
+    # d1 = abs(np.dot(quat_pred, quat_gt))
+    # print("Quat inverse")
+    d1 = abs(np.dot(quaternion_inverse(quat_pred), quat_gt))
     d2 = np.min((1.0, np.max((-1.0, d1))))
     rotation_error_in_degrees = 2 * np.arccos(d2) * 180 / np.pi
-    print(rotation_error_in_degrees)
+    # print(rotation_error_in_degrees)
     return rotation_error_in_degrees
 
 def get_rotation_error_using_log_of_rotation(R_pred: np.ndarray, R_gt: np.ndarray) -> float:
@@ -45,7 +87,10 @@ def get_both_errors(T_pred: np.ndarray, T_gt: np.ndarray) -> Tuple[float, float]
     if T_pred.shape != (4, 4) or T_gt.shape != (4, 4):
         raise ValueError(f'Input matrices must be 4x4, instead got {T_pred.shape} and {T_gt.shape}')
 
-    rot_error = get_rotation_error_using_quaternion_dot(T_pred[:3, :3], T_gt[:3, :3])
+    # rot_error = get_rotation_error_using_quaternion_dot(T_pred[:3, :3], T_gt[:3, :3])
+    # print(rot_error, "quat")
+    rot_error = get_rotation_error_using_arccos_of_trace_of_rotation(T_pred[:3, :3], T_gt[:3, :3])
+    # print(rot_error, "trace")
     trans_error = get_translation_error(T_pred[:3, -1], T_gt[:3, -1])
     return (rot_error, trans_error)
 

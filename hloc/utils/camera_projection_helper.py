@@ -272,7 +272,7 @@ def get_clipped_pointcloud(pointcloud, boundary):
 
 def moveback_tf_simple_given_pose(RT_wtoc, moveback_distance=0.5):
     """ 
-    Basically, tf "current pose" by 0.5 m backward in egocentric view and return that new pose in global frame.
+    Basically, tf "current pose" by 0.5 m backward in egocentric view and return that new pose.
     "Current pose" is extrinsics in camera projection terminology, RT_wtoc.
     x = K [R t]_wtoc X_w = K X_c; where X_c = RT_wtoc @ X_w.
     RIO10 local frame convention: Z forward, X right, Y below.
