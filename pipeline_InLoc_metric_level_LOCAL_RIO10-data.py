@@ -47,7 +47,7 @@ if __name__ == "__main__":
     outputs = Path('outputs/graphVPR/rio_metric/tiny/')  # where everything will be saved
 
     # Set config
-    dt_time = 'dt030522-t0510'
+    dt_time = 'dt150522-t0710'
     custom_info = '' #PINHOLE_cam
     feature_name  = 'superpoint_inloc'  # sift, superpoint_inloc, d2net-ss, netvlad
     matcher_name  = 'superglue' # NN-mutual, superglue

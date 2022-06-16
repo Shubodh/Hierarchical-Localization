@@ -19,7 +19,7 @@ import json
 
 
 from .utils.open3d_helper import custom_draw_geometry, load_view_point, viz_with_array_inp
-from .utils.camera_projection_helper import output_global_scan_rio, reestimate_pose_using_3D_features_pcloc #convert_depth_frame_to_pointcloud
+from .utils.camera_projection_helper import output_global_scan_rio, reestimate_pose_using_3D_features_pcloc, moveback_tf_simple_given_pose #convert_depth_frame_to_pointcloud
 from .utils.parsers import parse_retrieval, names_to_pair, parse_pose_file_RIO, parse_camera_file_RIO
 from .utils.io import read_image
 from .utils.viz import plot_images, plot_matches, save_plot
@@ -181,6 +181,11 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         mkp3d, valid = interpolate_scan(scan_r, mkpr)
         #### Tr = get_scan_pose(dataset_dir, r) #Already in global frame. This was needed for InLoc to take it from room -> global (there were 3 there: local, room, global)
         #### mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
+        print("debug valid")
+        print(r, q)
+        print(valid, np.full(np.count_nonzero(valid), i))
+        print(valid.shape, (np.full(np.count_nonzero(valid), i)).shape )
+        # sys.exit()
 
         all_mkpq.append(mkpq[valid])
         all_mkpr.append(mkpr[valid])
@@ -204,8 +209,6 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
             'params': [fx, fy, cx, cy]
         }
         ret['cfg'] = cfg
-        #print(ret)
-        #sys.exit()
     else:
         all_mkpq = np.concatenate(all_mkpq, 0)
         all_mkpr = np.concatenate(all_mkpr, 0)
@@ -261,8 +264,24 @@ def pose_from_cluster_tf_idea_simple(dataset_dir, q, retrieved, feature_file, ma
 
     for i, r in enumerate(retrieved):
         print("debuggg")
-        print(r)
+        full_prefix_path = dataset_dir / Path(q).parents[0]
+        q_stem = Path(q).stem.replace("color", "")
+        pose_file  = Path(full_prefix_path, q_stem + 'pose.txt')
+        assert  pose_file.exists(), pose_file 
+        RT_wtoc, RT_ctow = parse_pose_file_RIO(pose_file)
+
+        # TODO: tf_idea_simple (95% done)
+        # 1. Check if r is too close using image_too_close() from py3d
+        # 2. moveback()
+        RT_wtoc_mb = moveback_tf_simple_given_pose(RT_wtoc)
         sys.exit()
+        # 3. a. find and b. append keypoints. a:
+        #ret_new, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features_pcloc(
+        #    dataset_dir, r, ret['qvec'], ret['tvec'], on_ada, scene_id, camera_parm, height, width)#, dataset_dir, q, db, feature_file, match_file, skip_matches)
+        #    b. now append 4x (kps and all)
+        # 4. Uncomment all of below
+
+
         kpr = feature_file[r]['keypoints'].__array__()
         pair = names_to_pair(q, r)
         m = match_file[pair]['matches0'].__array__()
@@ -322,8 +341,6 @@ def pose_from_cluster_tf_idea_simple(dataset_dir, q, retrieved, feature_file, ma
             'params': [fx, fy, cx, cy]
         }
         ret['cfg'] = cfg
-        #print(ret)
-        #sys.exit()
     else:
         all_mkpq = np.concatenate(all_mkpq, 0)
         all_mkpr = np.concatenate(all_mkpr, 0)
@@ -382,9 +399,14 @@ def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pc
         #     dataset_dir, q, db, feature_file, match_file, skip_matches)
 
 
-        # print(ret)
+        print(mkpq.shape, mkpr.shape, mkp3d.shape, indices.shape, num_matches)
+        print("print all indices and q")
+        print(indices)
+        print(q)
+        # sys.exit()
         # refine_pcloc = False
-        on_ada = True
+        on_ada = False 
+        print("Check on_ada")
         if refine_pcloc:
             fx, fy, cx, cy, height, width = cam_intrinsics_from_query_img(Path(dataset_dir), Path(q))
             camera_parm = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
@@ -399,7 +421,6 @@ def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pc
 
 
         # print(mkpq.shape, mkpr.shape, mkp3d.shape, indices.shape, num_matches)
-        #sys.exit()
         #print(ret)
 
         try:

@@ -309,6 +309,7 @@ class Refinement_base(torch.nn.Module):
 
         valid_full = matches_full > -1
         mkpts0_full = kpts0_full[valid_full]
+        mkpts1_full = kpts1_full[matches_full[valid_full]]
         mkpts1_xyz_full = ptcloud[matches_full[valid_full], :]
 
-        return mkpts0_full, mkpts1_xyz_full
+        return mkpts0_full, mkpts1_xyz_full, mkpts1_full
