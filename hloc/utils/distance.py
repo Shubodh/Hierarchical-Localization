@@ -47,8 +47,8 @@ def calculate_distances(target_file, ref_files):
         _,ref_pose = read_pose(i + '.pose.txt')
 
         # print(i)
-        samply_path_to_copy = "/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/hloc/utils/distance_code_hloc/samply_visualization/"
-        copy2(Path(i+'.color.jpg'), Path(samply_path_to_copy))
+        # samply_path_to_copy = "/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/hloc/utils/distance_code_hloc/samply_visualization/"
+        # copy2(Path(i+'.color.jpg'), Path(samply_path_to_copy))
 
         rot_error, trans_error = get_both_errors(target_pose, ref_pose)
         distances.append(trans_error)
@@ -119,6 +119,7 @@ def bin_based_shortlisting(target_file, ref_files, iter_no=0, final_set=set()):
     if len(image_list) >= 40: # image_set will already include final_set. image_set = image_set[i-1] + final_set[i]
         # print(len(final_set), final_set)
         # closest_list = closest_x_images(target_file, image_list, num_matches=40-len(final_set))
+        print("CHECK AGAIN HERE later: Just print out everything and make sure everything is alright") #TODO
         new_list = np.array(list((set(image_list)).difference(final_set)))
         closest_list = closest_x_images(target_file, new_list, num_matches=40-len(final_set))
         # print("intersection", final_set.intersection(set(closest_list)))
