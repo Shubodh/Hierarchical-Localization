@@ -181,11 +181,6 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         mkp3d, valid = interpolate_scan(scan_r, mkpr)
         #### Tr = get_scan_pose(dataset_dir, r) #Already in global frame. This was needed for InLoc to take it from room -> global (there were 3 there: local, room, global)
         #### mkp3d = (Tr[:3, :3] @ mkp3d.T + Tr[:3, -1:]).T
-        print("debug valid")
-        print(r, q)
-        print(valid, np.full(np.count_nonzero(valid), i))
-        print(valid.shape, (np.full(np.count_nonzero(valid), i)).shape )
-        # sys.exit()
 
         all_mkpq.append(mkpq[valid])
         all_mkpr.append(mkpr[valid])
@@ -232,8 +227,24 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         ret = pycolmap.absolute_pose_estimation(
             all_mkpq, all_mkp3d, cfg, 48.00)
         ret['cfg'] = cfg
-        # print('hi bro')
-        # print(ret)
+
+        if ret['success'] == False:
+            T_w2c = np.array([[1.0, 0.0, 0.0, 1000.0],
+                            [0.0, 1.0, 0.0, 1000.0],
+                            [0.0, 0.0, 1.0, 1000.0],
+                            [0.0, 0.0, 0.0, 1.0]])
+            qx_c, qy_c, qz_c, qw_c = R.from_matrix(T_w2c[0:3,0:3]).as_quat()
+            tx_c, ty_c, tz_c = T_w2c[0:3,3]
+            ret['qvec'] = np.array([qw_c, qx_c, qy_c, qz_c])
+            ret['tvec'] = np.array([tx_c, ty_c, tz_c])
+            cfg = {
+                'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
+                'width': width,
+                'height': height,
+                'params': [fx, fy, cx, cy]
+            }
+            ret['cfg'] = cfg
+
         # print(all_mkpq.shape, all_mkpr.shape, all_mkp3d.shape, all_indices.shape, num_matches)
     return ret, all_mkpq, all_mkpr, all_mkp3d, all_indices, num_matches
 
@@ -364,7 +375,6 @@ def pose_from_cluster_tf_idea_simple(dataset_dir, q, retrieved, feature_file, ma
         ret = pycolmap.absolute_pose_estimation(
             all_mkpq, all_mkp3d, cfg, 48.00)
         ret['cfg'] = cfg
-        # print('hi bro')
         # print(ret)
         # print(all_mkpq.shape, all_mkpr.shape, all_mkp3d.shape, all_indices.shape, num_matches)
     return ret, all_mkpq, all_mkpr, all_mkp3d, all_indices, num_matches
@@ -399,14 +409,8 @@ def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pc
         #     dataset_dir, q, db, feature_file, match_file, skip_matches)
 
 
-        print(mkpq.shape, mkpr.shape, mkp3d.shape, indices.shape, num_matches)
-        print("print all indices and q")
-        print(indices)
-        print(q)
-        # sys.exit()
-        # refine_pcloc = False
-        on_ada = False 
-        print("Check on_ada")
+        on_ada = True 
+        #print("Check on_ada")
         if refine_pcloc:
             fx, fy, cx, cy, height, width = cam_intrinsics_from_query_img(Path(dataset_dir), Path(q))
             camera_parm = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])

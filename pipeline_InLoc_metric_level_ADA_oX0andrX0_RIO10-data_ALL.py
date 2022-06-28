@@ -36,17 +36,24 @@ if __name__ == "__main__":
     parser.add_argument('--scene_type', type=str, required=True, help="Example: ROI_with_QOI") #example argument: --scene_type ROI_with_QOI
     parser.add_argument('--date', type=str, required=True, help="Format: dt100622") #example argument: --scene_type ROI_with_QOI
     parser.add_argument('--time', type=str, required=True, help="Format: t0201") #example argument: --scene_type ROI_with_QOI
-    parser.add_argument('--netvlad_no', type=str, required=True, help="40 or 80") #example argument: --scene_type ROI_with_QOI
+    parser.add_argument('--testing_type_or', type=str, choices=('o20andr20', 'o40andr40', 'o40andgt40'), required=True) #'GT_radius', 
     args = parser.parse_args()
 
+    testing_type_or = str(args.testing_type_or)
     given_scene_id = str(args.scene_id)
     scene_type = str(args.scene_type) #ROI_with_QOI or ROI_and_ARRI_with_QOI_and_AQRI
     date = str(args.date)
     date_netvlad = date #'dt100622' # date
     time = str(args.time)
     dt_time = date +'-' + time 
-    netvlad_no = str(args.netvlad_no) 
-    #netvlad_no = "40" # "100" # 
+    
+    if testing_type_or == "o20andr20":
+        netvlad_no = "40" # "100" # 
+    elif testing_type_or == "o40andr40":
+        netvlad_no = "80" # "100" # 
+    elif testing_type_or == "o40andgt40":
+        netvlad_no = "80" # "100" # 
+
     #date = 'dt100622'
     #dt_time = date +'-' + 't1111'
 
@@ -65,8 +72,9 @@ if __name__ == "__main__":
 
     #pairs = Path('pairs/graphVPR/rio_metric/') #'pairs/inloc/'
     pairs = Path('pairs/graphVPR/rio_metric/scene' + given_scene_id + '/')
-    loc_pairs = pairs / Path('netvlad'+str(netvlad_no) +"_scene_"+scene_type +"_sampling10_" + date_netvlad +  '.txt') #netvlad40_FOR-scene01_and_places_sampling10_dt070322.txt  #netvlad40_FOR-scene01_only_places_dt070322.txt  # 'netvlad40_dt140222.txt' # top 40 retrieved by NetVLAD #-minustop3rooms
-    assert loc_pairs.exists(), loc_pairs 
+    loc_pairs = pairs / Path('netvlad'+netvlad_no +"_scene_"+testing_type_or+"_"+scene_type +"_sampling10_" + date_netvlad +  '.txt') #netvlad40_FOR-scene01_and_places_sampling10_dt070322.txt  #netvlad40_FOR-scene01_only_places_dt070322.txt  # 'netvlad40_dt140222.txt' # top 40 retrieved by NetVLAD #-minustop3rooms
+
+    assert loc_pairs.exists(), loc_pairs
 
     output_end ='scene' + given_scene_id + "_" + scene_type +  '/' #'scene' + given_scene_id + '_and_places/' #'scene01_and_places' #'scene01_just/'
     # output_end ='scene' + given_scene_id + and_only_just +  '/' #'scene' + given_scene_id + '_and_places/' #'scene01_and_places' #'scene01_just/'
@@ -78,7 +86,7 @@ if __name__ == "__main__":
     skip_no = 3 #20 #10 # USed 40 for all scenes excluding 9th one for d2net. For superglue, even 10 stops. PCLoc uses 3 lol. so using 3 now.
     refine_pcloc = False
 
-    testing_type = scene_type + "_" + 'scene'+ given_scene_id + '_sampling10_netvlad' + str(netvlad_no) + '_' #'scene01_sampling10_' #'scene01_only_places_' #'scene01_and_places_'
+    testing_type = scene_type + "_" + testing_type_or + "_scene"+ given_scene_id + '_sampling10_netvlad' + netvlad_no + '_' #'scene01_sampling10_' #'scene01_only_places_' #'scene01_and_places_'
 
     #results = outputs / Path('RIO_hloc_superpoint+superglue_skip10_' + dt_time + '.txt')  # the result file
     results = outputs / Path(testing_type + 'RIO_hloc_' + feature_name +'+' + matcher_name + '_skip' + str(skip_no) + '_' + dt_time + '.txt')  # the result file

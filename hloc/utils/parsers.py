@@ -4,6 +4,46 @@ import numpy as np
 from collections import defaultdict
 import yaml
 
+def remove_suffix_from_list_of_files(ref_poses_files):
+    """
+    Input: [Path(...touts/frame-000000.pose.txt), .. (it's a list of Path)]
+    Output: [(...touts/frame-000000),..] it's a list of str
+    """
+    ref_files_prefix = []
+    for ref in ref_poses_files:
+        pref = ref.parents[0]
+        suff = Path(ref.stem).stem
+        ref_files_prefix.append(str(pref / suff))
+    
+    return ref_files_prefix
+
+
+def dict_full_paths_without_rgb_from_partial_paths(dict_query_ref_partial_paths, room_id, scene_type):
+    dict_full = {}
+    for one_query, refs in dict_query_ref_partial_paths.items():
+        one_query_full = '/data/InLoc_like_RIO10/sampling10/scene0'+room_id+'_'+scene_type+'/' + one_query
+        one_query_full_without_rgb = one_query_full[:-10]
+        for ref in refs:
+            ref_full = '/data/InLoc_like_RIO10/sampling10/scene0'+room_id+'_'+scene_type+'/' + ref 
+            ref_full_without_rgb = ref_full[:-10]
+            dict_full.setdefault(one_query_full_without_rgb, []).append(ref_full_without_rgb)
+    return dict_full
+
+
+def parse_names(prefix, names, names_all):
+    """This function is defined in and used in pairs from retrieval"""
+    if prefix is not None:
+        if not isinstance(prefix, str):
+            prefix = tuple(prefix)
+        names = [n for n in names_all if n.startswith(prefix)]
+    elif names is not None and isinstance(names, (str, Path)):
+        names = parse_image_lists(names)
+    elif names is not None and isinstance(names, collections.Iterable):
+        names = list(names)
+    else:
+        raise ValueError('Provide either prefixes of names, a list of '
+                         'images, or a path to list file.')
+    return names
 
 def parse_image_list(path, with_intrinsics=False):
     images = []

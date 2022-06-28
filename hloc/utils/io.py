@@ -18,6 +18,22 @@ from hloc.utils.viz import plot_images, plot_images_simple
 # from .parsers import parse_poses_from_file
 # from parsers import parse_poses_from_file
 
+def write_dict_to_output_txt(dict_query_ref_full_paths_without_rgb, output, query_prefix, db_prefix):
+    pairs = []
+    for one_query, refs in dict_query_ref_full_paths_without_rgb.items():
+        for ref in refs:
+            # query_end = 'query/' + str(Path(one_query).name) + '.color.jpg'
+            query_end = query_prefix[0] + str(Path(one_query).name) + '.color.jpg'
+            ref_end =   db_prefix[0]  + str(Path(ref).name) + '.color.jpg'
+            # ref_end = 'database/cutouts/' + str(Path(ref).name) + '.color.jpg'
+            pair = (query_end, ref_end)
+            pairs.append(pair)
+
+    logging.info(f'Found {len(pairs)} pairs.')
+
+    with open(output, 'w') as f:
+        f.write('\n'.join(' '.join([i, j]) for i, j in pairs))
+        print(f"Done! written file to {output}.")
 
 def read_image(path, grayscale=False):
     if grayscale:
@@ -246,10 +262,10 @@ if __name__ == "__main__":
     # 1. above
     pose_path = args.pose_path
     scene_id = args.scene_id
-    convert_pose_file_format_wtoc_to_ctow_RIO_format(pose_path, scene_id)
+    #convert_pose_file_format_wtoc_to_ctow_RIO_format(pose_path, scene_id)
 
     # 2. above
     folder_path = args.folder_path
     output_file_path = args.output_file_path
-    #write_individual_pose_files_to_single_output(folder_path, output_file_path, scene_id)
+    write_individual_pose_files_to_single_output(folder_path, output_file_path, scene_id)
 

@@ -1,0 +1,5 @@
+#scp -r /data/InLoc_like_RIO10/sampling10/scene01_ROI_with_QOI_and_AQRI/query/*places*rendered.depth.png shubodh@10.11.0.14:/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/RIO10/data/seq01/seq01_02/
+#scp -r /data/InLoc_like_RIO10/sampling10/scene03_ROI_with_QOI_and_AQRI/query/*places*rendered.depth.png shubodh@10.11.0.14:/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/RIO10/data/seq03/seq03_02/
+#scp -r /data/InLoc_like_RIO10/sampling10/scene05_ROI_with_QOI_and_AQRI/query/*places*rendered.depth.png shubodh@10.11.0.14:/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/RIO10/data/seq05/seq05_02/
+#scp -r /data/InLoc_like_RIO10/sampling10/scene07_ROI_with_QOI_and_AQRI/query/*places*rendered.depth.png shubodh@10.11.0.14:/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/RIO10/data/seq07/seq07_02/
+scp -r /data/InLoc_like_RIO10/sampling10/scene09_ROI_with_QOI_and_AQRI/query/*places*rendered.depth.png shubodh@10.11.0.14:/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/RIO10/data/seq09/seq09_02/

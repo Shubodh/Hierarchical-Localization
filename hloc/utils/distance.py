@@ -4,7 +4,8 @@ import sys
 from pathlib import Path
 from shutil import copy2
 
-from evaluation import get_both_errors
+sys.path.append('../../')
+from hloc.utils.evaluation import get_both_errors
 
 
 def read_pose(file_name):
@@ -96,8 +97,8 @@ def closest_x_images(target_file, ref_files, num_matches):
     # final_files = [i + '.color.jpg' for i in ref_top]
     return ref_top 
 
-def bin_based_shortlisting(target_file, ref_files, iter_no=0, final_set=set()):
-    """
+def bin_based_shortlisting(target_file, ref_files, iter_no, final_set):
+    """ Call like : iter_no=0, final_set=set()
     Explanation:
     Given a query pose and list of ref poses, shortlist 40 ref poses "closest" to query poses.
     "closest" is difficult to define, therefore we take a bin based approach.
@@ -106,31 +107,39 @@ def bin_based_shortlisting(target_file, ref_files, iter_no=0, final_set=set()):
     then if <40 found, then include bins[1] and so on till 40 are found.
     If > 40 found, use closest_x_images() for finding 40 exactly.
     """
-    bins = [(0.05, 5.0), (0.25,10), (2, 10), (3,15), (5,20), (7,30), (10,60), (10, 160), (10, 200)]
+    # Remember that image_list will include bins[0] + .. + bins[i], not just bins[i].
+    bins = [(0.25, 5.0), (0.5,10), (1,10), (2, 10), (3,15), (5,20), (7,30), (10,60), (10, 160), (10, 200)]
+
     # print("DEBUGGING HERE")
     # bins = [(10, 60)]
     radius, angle_threshold = bins[iter_no]
     image_list = images_in_x_radius_and_t_angle(target_file, ref_files, radius, angle_threshold)
+
     # print(len(image_list), "hi", len(ref_files))
-    # Remember that image_list will include bins[0] + .. + bins[i], not just bins[i].
     # print(f"iteration {i}, target_file {target_file}, image_list {image_list}, radius {radius}  and angle {angle_threshold}")
-    print(f"len-image_list {len(image_list)}, iteration {iter_no}, target_file {target_file}, radius {radius}  and angle {angle_threshold}")
+
+    # PRINT THIS
+    # print(f"len-image_list {len(image_list)}, iteration {iter_no}, target_file {target_file}, radius {radius}  and angle {angle_threshold}")
+
     #if len(image_list) + len(final_set) >= 40:
     if len(image_list) >= 40: # image_set will already include final_set. image_set = image_set[i-1] + final_set[i]
-        # print(len(final_set), final_set)
+        # Below is wrong: it will give redundant images
         # closest_list = closest_x_images(target_file, image_list, num_matches=40-len(final_set))
-        print("CHECK AGAIN HERE later: Just print out everything and make sure everything is alright") #TODO
+
+        # Below is right: You are removing common images and then giving to closest_x_..() function.
         new_list = np.array(list((set(image_list)).difference(final_set)))
         closest_list = closest_x_images(target_file, new_list, num_matches=40-len(final_set))
-        # print("intersection", final_set.intersection(set(closest_list)))
-        # print(len(closest_list), closest_list)
         final_set.update(closest_list)
-        print(f"The fight is done. Ended this at {bins[iter_no]}, len(final_set): {len(final_set)}, final_set: {final_set}")
-        return final_set
+        final_list = list(final_set)
+
+        # PRINT THIS
+        print(f"For this query {target_file}, ended at {bins[iter_no]}, len(final_list): {len(final_list)}")
+        # print(f"The fight is done. Ended this at {bins[iter_no]}, len(final_list): {len(final_list)}, final_list: {final_list}")
+        return final_list 
     else:
         final_set.update(image_list)
         iter_no += 1
-        bin_based_shortlisting(target_file, ref_files, iter_no, final_set)
+        return bin_based_shortlisting(target_file, ref_files, iter_no, final_set)
 
 
 
