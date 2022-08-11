@@ -159,19 +159,20 @@ def pose_from_cluster(dataset_dir, q, retrieved, feature_file, match_file,
         num_matches += len(mkpq)
 
         # VISUALIZATION DEBUG:
-        viz_or_save_plots = False
-        if viz_or_save_plots:
-            # print(dataset_dir, Path(q).stem, Path(Path(r).stem).stem)
-            # print(f"Number of matches: {mkpq.shape[0]}")
+        # NOTE: Moved this visualization code to `viz_correspondences_given_images.py`
+        # viz_or_save_plots =  False
+        # if viz_or_save_plots:
+        #     # print(dataset_dir, Path(q).stem, Path(Path(r).stem).stem)
+        #     print(f"Number of matches: {mkpq.shape[0]}")
 
-            plot_images([read_image(dataset_dir / q), read_image(dataset_dir / r)])
-            plot_matches(mkpq, mkpr)
-            pref_path = Path("outputs/graphVPR/rio_metric/viz/")
-            path_sv =  pref_path / Path(dataset_dir.stem[:7] + "_q-" + Path(Path(q).stem).stem + "_r-" + Path(Path(r).stem).stem +  ".png")
-            save_plot(path_sv)
-            # print(f"saved correspondences plot at {path_sv}")
+        #     plot_images([read_image(dataset_dir / q), read_image(dataset_dir / r)])
+        #     plot_matches(mkpq, mkpr)
+        #     pref_path = Path("outputs/graphVPR/rio_metric/viz_3d_expt/")
+        #     path_sv =  pref_path / Path(dataset_dir.stem[:7] + "_q-" + Path(Path(q).stem).stem + "_r-" + Path(Path(r).stem).stem +  ".png")
+        #     save_plot(path_sv)
+        #     print(f"saved correspondences plot at {path_sv}")
 
-            # plt.show()
+        #     # plt.show()
 
         # viz_entire_room_by_registering(dataset_dir, r)
         # scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
@@ -409,9 +410,10 @@ def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pc
         #     dataset_dir, q, db, feature_file, match_file, skip_matches)
 
 
-        on_ada = True 
-        #print("Check on_ada")
+        on_ada = False
+        print("Check on_ada")
         if refine_pcloc:
+            print("PCLOC starting")
             fx, fy, cx, cy, height, width = cam_intrinsics_from_query_img(Path(dataset_dir), Path(q))
             camera_parm = np.array([[fx, 0, cx], [0, fy, cy], [0, 0, 1]])
             #ret, mkpq, mkpr, mkp3d, indices, num_matches = reestimate_pose_using_3D_features_pcloc(
@@ -422,6 +424,24 @@ def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pc
                 # print(ret_new['success'])
                 ret = ret_new
             #else: ret = ret
+            # VISUALIZATION DEBUG:
+            viz_or_save_plots = False
+            if viz_or_save_plots:
+                print("Below viz is wrong. Your actual task was: Visualize correspondences for 3D proj at original ref pose")
+                print("But below you are doing it at PCLoc's estimated pose. So not your intention.")
+                print("viz plot under PCLOC")
+                r = db[0]
+                # print(r)
+                # print(dataset_dir, Path(q).stem, Path(Path(r).stem).stem)
+                print(f"Number of matches: {mkpq.shape[0]}")
+
+                plot_images([read_image(dataset_dir / q), read_image(dataset_dir / r)])
+                plot_matches(mkpq, mkpr)
+                pref_path = Path("outputs/graphVPR/rio_metric/viz_3d_expt/")
+                # path_sv =  pref_path / Path(dataset_dir.stem[:7] + "_q-" + Path(Path(q).stem).stem + "_r-" + Path(Path(r).stem).stem +  ".png")
+                path_sv =  pref_path / Path("3d_expt_"+ dataset_dir.stem[:7] + "_q-" + Path(Path(q).stem).stem + "_r-" + Path(Path(r).stem).stem +  ".png")
+                save_plot(path_sv)
+                print(f"saved correspondences plot at {path_sv}")
 
 
         # print(mkpq.shape, mkpr.shape, mkp3d.shape, indices.shape, num_matches)

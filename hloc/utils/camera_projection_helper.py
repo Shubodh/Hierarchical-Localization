@@ -339,7 +339,7 @@ def convert_superglue_db_format(img_tensor, pred_q, pred_kpts, pred_desc, pred_s
     return data
 
 def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, scene_id, camera_parm, height, width):#, pcfeat_pth, camera_parm, max_keypoints):
-    max_keypoints = 3000  #SuperPoint's default is -1. In hloc, we're using -1. In PCLoc, 3000.
+    max_keypoints = 3000  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
     if on_ada:
         pcfeat_base_pth = "/data/InLoc_dataset/outputs/rio/ICCV_TEST/pc_feats/"
         pc_idx = "pcfeat_scene" + str(scene_id) + ".pkl"
@@ -394,7 +394,7 @@ def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, 
     # print(cutout_pth, "\n", image0, "\n", inp0, "\n", scales0)
     sg_config = {'superpoint': {'nms_radius': 4,
                              'keypoint_threshold': 0.005,
-                             'max_keypoints': 3000  #SuperPoint's default is -1. In hloc, we're using -1. In PCLoc, 3000.
+                             'max_keypoints': -1  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
                              }}
 
     superpoint = SuperPoint(sg_config.get('superpoint', {})).eval().to(device)
@@ -690,6 +690,7 @@ def synthesize_img_given_viewpoint_short(pcd, viewpoint_json):
 #    #ax1.set_title("View 2 warped into View 1 \n according to the estimated transformation", fontsize='large')
 #    #ax1.axis('off')
 #
+
 def backprojection_to_3D_features_and_save_rio(save_dir, db_dir, scene_id):
     # local_feat_dir = os.path.join(save_dir, 'local_feats')
     # if not os.path.exists(local_feat_dir): os.makedirs(local_feat_dir)
@@ -702,7 +703,7 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir, scene_id):
     print('Running inference on device \"{}\"'.format(device))
     config = {'superpoint': {'nms_radius': 4,
                              'keypoint_threshold': 0.005,
-                             'max_keypoints': 3000  #SuperPoint's default is -1. In hloc, we're using -1. In PCLoc, 3000.
+                             'max_keypoints': 3000  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
                              }}
 
     superpoint = SuperPoint(config.get('superpoint', {})).eval().to(device)
@@ -770,6 +771,7 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir, scene_id):
     pc_feat['descriptors'] = total_desc
     pc_feat['scores'] = total_score
 
+    pkl_type = ""
     pc_idx = "pcfeat_scene" + str(scene_id) + ".pkl"
     # save_pcfeat_fname = os.path.join(pc_feat_dir, 'pcfeat_{:05}.pkl'.format(pc_idx))
     save_pcfeat_fname = os.path.join(pc_feat_dir, pc_idx)
@@ -777,7 +779,7 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir, scene_id):
         pickle.dump(pc_feat, handle, protocol=pickle.HIGHEST_PROTOCOL)
     # pc_idx += 1
 
-    print(">> Save Local Feature and PC Feature Completed...")
+    print(f">> Save Local Feature and PC Feature Completed... at {save_pcfeat_fname}")
 
 
 if __name__ == '__main__':
