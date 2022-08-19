@@ -1,4 +1,4 @@
-query/frame-000062.color.jpg database/cutouts/frame-001820.color.jpg
 query/frame-000107.color.jpg database/cutouts/frame-004260.color.jpg
 query/frame-001575.color.jpg database/cutouts/frame-000194.color.jpg
 query/frame-002018.color.jpg database/cutouts/frame-004309.color.jpg
+query/frame-000062.color.jpg database/cutouts/frame-001820.color.jpg

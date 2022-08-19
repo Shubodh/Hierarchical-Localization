@@ -339,7 +339,7 @@ def convert_superglue_db_format(img_tensor, pred_q, pred_kpts, pred_desc, pred_s
     return data
 
 def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, scene_id, camera_parm, height, width):#, pcfeat_pth, camera_parm, max_keypoints):
-    max_keypoints = 3000  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
+    max_keypoints = 4096 #Before 13aug, you used 3000.  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
     if on_ada:
         pcfeat_base_pth = "/data/InLoc_dataset/outputs/rio/ICCV_TEST/pc_feats/"
         pc_idx = "pcfeat_scene" + str(scene_id) + ".pkl"
@@ -392,9 +392,9 @@ def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, 
     query_pth = str(dataset_dir / q)
     image0, inp0, scales0 = read_image_sg(query_pth, device, [-1], 0, False)
     # print(cutout_pth, "\n", image0, "\n", inp0, "\n", scales0)
-    sg_config = {'superpoint': {'nms_radius': 4,
+    sg_config = {'superpoint': {'nms_radius': 4, 
                              'keypoint_threshold': 0.005,
-                             'max_keypoints': -1  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
+                             'max_keypoints': 4096  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
                              }}
 
     superpoint = SuperPoint(sg_config.get('superpoint', {})).eval().to(device)
@@ -701,9 +701,9 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir, scene_id):
     torch.set_grad_enabled(False)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print('Running inference on device \"{}\"'.format(device))
-    config = {'superpoint': {'nms_radius': 4,
+    config = {'superpoint': {'nms_radius': 4, #These are final ones, setting same as hloc.
                              'keypoint_threshold': 0.005,
-                             'max_keypoints': 3000  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
+                             'max_keypoints': 4096  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
                              }}
 
     superpoint = SuperPoint(config.get('superpoint', {})).eval().to(device)
@@ -729,12 +729,13 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir, scene_id):
         xyz = output_global_scan_rio(Path(db_dir), Path(r)) #equivalent to # scan_r = loadmat(Path(dataset_dir, r + '.mat'))["XYZcut"]
 
         pred = superpoint({'image': inp0})
-
         pred = {k: v[0].cpu().numpy() for k, v in pred.items()}
+
         keypoints = (pred['keypoints'] * scales0).astype(int)
+
         kpts_xyz = xyz[keypoints[:, 1], keypoints[:, 0], :]
         H_kpts = np.concatenate((kpts_xyz.T, np.ones((1, len(kpts_xyz)))), axis=0)
-        # align_xyz = np.matmul(P_after, H_kpts) #For InLoc, not relevant for RIO10
+        # align_xyz = np.matmul(P_after, H_kpts) #For InLoc, not relevant for RIO10. So the following 2-3 lines serve no purpose. Keeping it anyway for InLoc later.
         align_xyz = H_kpts
         align_xyz = np.divide(align_xyz[:3, :], align_xyz[3, :]).T
 
@@ -786,6 +787,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # local shub #db_dir should ls = database/ query/
     # --db_dir /media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/datasets/InLoc_like_RIO10/scene01/ --save_dir /media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/outputs/rio/ICCV_TEST/
+    # scene01_small_for_3dproj_pkl:
+    # --db_dir /media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/datasets/InLoc_like_RIO10/scene01_small_for_3dproj_pkl/ --save_dir /media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/outputs/rio/ICCV_TEST/
 
     # on ADA #db_dir should ls = database/ query/
     # --db_dir /data/InLoc_like_RIO10/sampling10/scene01_JUST/ --save_dir /data/InLoc_dataset/outputs/rio/ICCV_TEST --scene_id 01
