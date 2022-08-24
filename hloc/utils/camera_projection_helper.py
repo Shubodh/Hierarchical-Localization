@@ -338,116 +338,6 @@ def convert_superglue_db_format(img_tensor, pred_q, pred_kpts, pred_desc, pred_s
 
     return data
 
-def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, scene_id, camera_parm, height, width):#, pcfeat_pth, camera_parm, max_keypoints):
-    max_keypoints = 4096 #Before 13aug, you used 3000.  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
-    if on_ada:
-        pcfeat_base_pth = "/data/InLoc_dataset/outputs/rio/ICCV_TEST/pc_feats/"
-        pc_idx = "pcfeat_scene" + str(scene_id) + ".pkl"
-        pcfeat_pth = pcfeat_base_pth + pc_idx
-        assert Path(pcfeat_pth).exists(), Path(pcfeat_pth)
-        pcfeat_pth = [pcfeat_pth]
-    else: #local_shub
-        pcfeat_base_pth = "/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/outputs/rio/ICCV_TEST/pc_feats/"
-        pc_idx = "pcfeat_scene" + str(scene_id) + ".pkl"
-        pcfeat_pth = pcfeat_base_pth + pc_idx
-        assert Path(pcfeat_pth).exists(), Path(pcfeat_pth)
-        pcfeat_pth = [pcfeat_pth]
-
-    # qvec, tvec i get from hloc pipeline is wtoc or w2c.
-    torch.set_grad_enabled(False)
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    # print('Running inference on device \"{}\"'.format(device))
-    config = {'superpoint': {'weights': 'indoor', # IMPORTANT: TO-CHECK-Later: hloc by default uses indoor weights, but PCLoc uses outdoor.
-                            #'descriptor_dim': 256,
-                            #'keypoint_encoder': [32, 64, 128, 256],
-                            #'GNN_layers': ['self', 'cross'] * 9,
-                            'sinkhorn_iterations': 100,# TO-CHECK-Later: hloc by default uses 100, but PCLoc uses 20.
-                            'match_threshold': 0.2,
-                             }}
-    superglue = SuperGlue(config.get('superglue', {})).eval().to(device)
-    refinement = Refinement_base(superglue) # Later: Add Refinement_extended, Extended PC (Div matching)
-
-    RT_wtoc = np.zeros((4,4))
-    RT_wtoc[3,3] = 1 
-    qw, qx, qy, qz  = qvec 
-    RT_wtoc[0:3,0:3] = R.from_quat([qx, qy, qz, qw]).as_matrix()
-    RT_wtoc[0:3, 3] = tvec
-    # RT_ctow = np.copy(RT_wtoc)
-    # RT_ctow = np.linalg.inv(RT_wtoc)
-
-    pred_pose = RT_wtoc
-
-
-    # print(">> Pose Correction using the pre-estimated poses...")
-    # refine_poses = []
-    # num_inliers = []
-    # for idx in tqdm(topk_inliers):
-    #     topk_idx = clustered_frames[idx]
-    #     pred_pose = pred_poses[idx]
-    #     pcfeat_pth = pcfeat_list[topk_idx // 36]
-
-    pred_kpts, pred_desc, pred_score, pred_xyz = scan2imgfeat_projection(pred_pose, pcfeat_pth, camera_parm, height, width, num_kpts=max_keypoints)
-    # image0, inp0, scales0 = read_image_sg(cutout_pth[:-4], device, [1200], 0, False)
-    # TO-CHECK-Later: (In case bad results) Look at 3rd param `resize` below. In PCLoc for InLoc, they use 1600.
-    query_pth = str(dataset_dir / q)
-    image0, inp0, scales0 = read_image_sg(query_pth, device, [-1], 0, False)
-    # print(cutout_pth, "\n", image0, "\n", inp0, "\n", scales0)
-    sg_config = {'superpoint': {'nms_radius': 4, 
-                             'keypoint_threshold': 0.005,
-                             'max_keypoints': 4096  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
-                             }}
-
-    superpoint = SuperPoint(sg_config.get('superpoint', {})).eval().to(device)
-    pred0 = superpoint({'image': inp0})
-
-    data = convert_superglue_db_format(inp0, pred0, pred_kpts, pred_desc, pred_score, device)
-    mkpts0, mkpts_xyz, mkpts1 = refinement(data, pred_xyz) #mkpts0 is query keypoints
-    # print(mkpts0.shape, len(mkpts0))
-    # print(pred_pose)
-    # sys.exit()
-
-    fx, fy, cx, cy = camera_parm[0,0], camera_parm[1,1], camera_parm[0,2], camera_parm[1,2]
-    cfg = {
-        'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
-        'width': width,
-        'height': height,
-        'params': [fx, fy, cx, cy]
-    }
-    ret = pycolmap.absolute_pose_estimation(
-        mkpts0, mkpts_xyz, cfg, 48.00)
-    ret['cfg'] = cfg
-
-    # print("after")
-    # print(mkpts0.shape, pred_kpts.shape, mkpts_xyz.shape, mkpts0.shape[0])
-    # TO-CHECK-Later: INDICES written WRONG. I think there's no way to return correct indices, but once check later again.
-    return ret, mkpts0, mkpts1, mkpts_xyz, mkpts0[:,0], mkpts0.shape[0]
-    # return ret, all_mkpq,  all_mkpr, all_mkp3d, all_indices, num_matches
-    # TO-CHECK-Later: Better way to code the above is to exclusively handle failure cases as below commented code:
-#    if len(mkpts0) > 3:
-#        result, inliers = do_pnp(mkpts0, mkpts_xyz, camera_parm, 0.00, reproj_error=args.reproj_err)
-#        # cfg = {
-#        #     'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
-#        #     'width': width,
-#        #     'height': height,
-#        #     'params': [fx, fy, cx, cy]
-#        # }
-#
-#    else:
-#        result = loc_failure
-#        T_w2c = pred_pose
-#        result = LocResult(False, result.num_inliers, result.inlier_ratio, T_w2c)
-#
-#    if result.success:
-#        T_c2w = result.T
-#        T_w2c = np.linalg.inv(T_c2w)
-#
-#    else:
-#        T_w2c = pred_pose
-#
-#    refine_poses.append(T_w2c)
-#    num_inliers.append(result.num_inliers)
-
-
 def scan2imgfeat_projection(pose, feat_pth, camera_parm, height, width, num_kpts=4096):
     # print("TO-CHECK-Later: Left this function as it is currently, inspect it later if results aren't good.")
     with open(feat_pth[0], 'rb') as handle:
@@ -621,75 +511,183 @@ def synthesize_img_given_viewpoint_short(pcd, viewpoint_json):
     o3d.io.write_image(viewpoint_json + "synth.jpg", img)
     print(f"image written to {viewpoint_json}synth.jpg")
 
-
-#def old_code_dump_from_synthesize_img_given_viewpoint():
-#    cx = .5 * W 
-#    cy = .5 * H
-#    focal_length = 4032. * 28. / 36.
-#    K[0][0], K[1][1] = focal_length, focal_length
-#    K[0][2] = cx
-#    K[1][2] = cy
-#    print("K after")
-#    print(K)
-    #H = int(vpt_json['intrinsic']['height'])
-    #W = int(vpt_json['intrinsic']['width'])
-    #cv2.Rodrigues(extrinsics[0:3,0:3].T, rvecs)
-    #tvecs = - extrinsics[0:3,0:3].T @ extrinsics[0:3,3]
+def old_code_dump_from_synthesize_img_given_viewpoint():
+    cx = .5 * W 
+    cy = .5 * H
+    focal_length = 4032. * 28. / 36.
+    K[0][0], K[1][1] = focal_length, focal_length
+    K[0][2] = cx
+    K[1][2] = cy
+    print("K after")
+    print(K)
+    H = int(vpt_json['intrinsic']['height'])
+    W = int(vpt_json['intrinsic']['width'])
+    cv2.Rodrigues(extrinsics[0:3,0:3].T, rvecs)
+    tvecs = - extrinsics[0:3,0:3].T @ extrinsics[0:3,3]
 
     # GETTING SAME RESULTS USING OPENCV TOO:
-    #xy_imgcv, jac = cv2.projectPoints(xyz, rvecs, tvecs, K, dist)
-    #xy_imgcv = np.array(xy_imgcv.reshape(xy_imgcv.shape[0], 2), dtype=np.int_)
+    xy_imgcv, jac = cv2.projectPoints(xyz, rvecs, tvecs, K, dist)
+    xy_imgcv = np.array(xy_imgcv.reshape(xy_imgcv.shape[0], 2), dtype=np.int_)
 
-    #print(xy_imgcv.shape, xy_imgcv_n.shape)
-    #print(np.max(xy_imgcv), np.min(xy_imgcv), xy_imgcv)
+    print(xy_imgcv.shape, xy_imgcv_n.shape)
+    print(np.max(xy_imgcv), np.min(xy_imgcv), xy_imgcv)
 
-#    W_valid = (xy_imgcv[:,0] >= 0) &  (xy_imgcv[:,0] < W)
-#    H_valid = (xy_imgcv[:,1] >= 0) &  (xy_imgcv[:,1] < H)
-#    #print(xy_imgcv[:,0].shape,"hi", np.nanmax(xy_imgcv, axis=0), "hii", xy_imgcv[0:10])
-#    #print(xy_imgcv.shape)
-#    final_valid = (H_valid  & W_valid)
-#    #print(xy_imgcv[final_valid])
-#    print(np.nanmax(xy_imgcv[final_valid], axis=0))
-#    #print(np.argwhere(final_valid==False))
-#
+    W_valid = (xy_imgcv[:,0] >= 0) &  (xy_imgcv[:,0] < W)
+    H_valid = (xy_imgcv[:,1] >= 0) &  (xy_imgcv[:,1] < H)
+    #print(xy_imgcv[:,0].shape,"hi", np.nanmax(xy_imgcv, axis=0), "hii", xy_imgcv[0:10])
+    #print(xy_imgcv.shape)
+    final_valid = (H_valid  & W_valid)
+    #print(xy_imgcv[final_valid])
+    print(np.nanmax(xy_imgcv[final_valid], axis=0))
+    #print(np.argwhere(final_valid==False))
+
     # 2. habitat script grid_sample method
 
-#    colors = np.array(np.asarray(pcd.colors) , dtype=np.single)
-#    colors_re = colors.reshape((H,W,3))
+    colors = np.array(np.asarray(pcd.colors) , dtype=np.single)
+    colors_re = colors.reshape((H,W,3))
+
+    xyz_T = xyz.T
+    xyz_hom0 = np.vstack((xyz_T, np.ones(xyz_T[0].shape)))
+    K_hom = np.vstack((K, np.zeros(K[0].shape)))
+    K_hom = np.hstack((K_hom, np.array([[0,0,0,1]]).T))
+
+    xyz_hom1 = np.matmul(extrinsics, xyz_hom0)
+    xy_img = np.matmul(K_hom, xyz_hom1)
+    xy_img = xy_img[0:2,:] / xy_img[2:3,:] #TXDX: Check if minus - should be there before xy_img[2:3,:].
+    #xy_img[1] *= -1
+
+    print(xy_img.shape, "bii", np.nanmax(xy_img, axis=1),  xy_img[:, 0:10])
+
+    print(xy_img)
+    sampler = torch.Tensor(xy_img).view(2, H, W).permute(1,2,0).unsqueeze(0)
+    print("HI", sampler)
+    #print(colors_re.shape, xy_img.shape)
+    # Create generated image
+    img2_tensor = ToTensor()(colors_re).unsqueeze(0)
+    img2_warped = F.grid_sample(img2_tensor, sampler)
+
+    #print(img2_tensor[:,:,10], img2_warped[:,:,10])
+
+    # Visualise
+    #plt.figure(figsize=(10,10))
+    #ax1 = plt.subplot(221)
+    #ax1.imshow(img2_tensor.squeeze().permute(1,2,0))
+    #ax1.set_title("View 2", fontsize='large')
+    #ax1.axis('off')
+    #ax1 = plt.subplot(222)
+    #plt.imshow(img2_warped.squeeze().permute(1,2,0))
+    #ax1.set_title("View 2 warped into View 1 \n according to the estimated transformation", fontsize='large')
+    #ax1.axis('off')
+
+
+def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, scene_id, camera_parm, height, width):#, pcfeat_pth, camera_parm, max_keypoints):
+    max_keypoints = 4096 #Before 13aug, you used 3000.  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
+    if on_ada:
+        pcfeat_base_pth = "/data/InLoc_dataset/outputs/rio/ICCV_TEST/pc_feats/"
+        pc_idx = "pcfeat_scene" + str(scene_id) + ".pkl"
+        pcfeat_pth = pcfeat_base_pth + pc_idx
+        assert Path(pcfeat_pth).exists(), Path(pcfeat_pth)
+        pcfeat_pth = [pcfeat_pth]
+    else: #local_shub
+        pcfeat_base_pth = "/media/shubodh/DATA/OneDrive/rrc_projects/2021/graph-based-VPR/Hierarchical-Localization/outputs/rio/ICCV_TEST/pc_feats/"
+        pc_idx = "pcfeat_scene" + str(scene_id) + ".pkl"
+        pcfeat_pth = pcfeat_base_pth + pc_idx
+        assert Path(pcfeat_pth).exists(), Path(pcfeat_pth)
+        pcfeat_pth = [pcfeat_pth]
+
+    # qvec, tvec i get from hloc pipeline is wtoc or w2c.
+    torch.set_grad_enabled(False)
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # print('Running inference on device \"{}\"'.format(device))
+    config = {'superglue': {'weights': 'outdoor', # Both hloc and PCLoc uses outdoor. But SuperGlue's default is indoor.
+                            #'descriptor_dim': 256,
+                            #'keypoint_encoder': [32, 64, 128, 256],
+                            #'GNN_layers': ['self', 'cross'] * 9,
+                            'sinkhorn_iterations': 50,# TO-CHECK-Later: hloc by default uses 50, but PCLoc uses 20.
+                            # 'match_threshold': 0.2,
+                             }}
+    superglue = SuperGlue(config.get('superglue', {})).eval().to(device)
+    superglue_refinement = Refinement_base(superglue) # Later: Add Refinement_extended, Extended PC (Div matching)
+
+    RT_wtoc = np.zeros((4,4))
+    RT_wtoc[3,3] = 1 
+    qw, qx, qy, qz  = qvec 
+    RT_wtoc[0:3,0:3] = R.from_quat([qx, qy, qz, qw]).as_matrix()
+    RT_wtoc[0:3, 3] = tvec
+    # RT_ctow = np.copy(RT_wtoc)
+    # RT_ctow = np.linalg.inv(RT_wtoc)
+
+    pred_pose = RT_wtoc
+
+
+    # print(">> Pose Correction using the pre-estimated poses...")
+    # refine_poses = []
+    # num_inliers = []
+    # for idx in tqdm(topk_inliers):
+    #     topk_idx = clustered_frames[idx]
+    #     pred_pose = pred_poses[idx]
+    #     pcfeat_pth = pcfeat_list[topk_idx // 36]
+
+    pred_kpts, pred_desc, pred_score, pred_xyz = scan2imgfeat_projection(pred_pose, pcfeat_pth, camera_parm, height, width, num_kpts=max_keypoints)
+    # image0, inp0, scales0 = read_image_sg(cutout_pth[:-4], device, [1200], 0, False)
+    # TO-CHECK-Later: (In case bad results) Look at 3rd param `resize` below. In PCLoc for InLoc, they use 1600.
+    query_pth = str(dataset_dir / q)
+    image0, inp0, scales0 = read_image_sg(query_pth, device, [-1], 0, False)
+    # print(cutout_pth, "\n", image0, "\n", inp0, "\n", scales0)
+    sg_config = {'superpoint': {'nms_radius': 4, 
+                             'keypoint_threshold': 0.005,
+                             'max_keypoints': 4096  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
+                             }}
+
+    superpoint = SuperPoint(sg_config.get('superpoint', {})).eval().to(device)
+    pred0 = superpoint({'image': inp0})
+
+    data = convert_superglue_db_format(inp0, pred0, pred_kpts, pred_desc, pred_score, device)
+    mkpts0, mkpts_xyz, mkpts1 = superglue_refinement(data, pred_xyz) #mkpts0 is query keypoints
+    # print(mkpts0.shape, len(mkpts0))
+    # print(pred_pose)
+    # sys.exit()
+
+    fx, fy, cx, cy = camera_parm[0,0], camera_parm[1,1], camera_parm[0,2], camera_parm[1,2]
+    cfg = {
+        'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
+        'width': width,
+        'height': height,
+        'params': [fx, fy, cx, cy]
+    }
+    ret = pycolmap.absolute_pose_estimation(
+        mkpts0, mkpts_xyz, cfg, 48.00)
+    ret['cfg'] = cfg
+
+    # print("after")
+    # print(mkpts0.shape, pred_kpts.shape, mkpts_xyz.shape, mkpts0.shape[0])
+    # TO-CHECK-Later: INDICES written WRONG. I think there's no way to return correct indices, but once check later again.
+    return ret, mkpts0, mkpts1, mkpts_xyz, mkpts0[:,0], mkpts0.shape[0]
+    # return ret, all_mkpq,  all_mkpr, all_mkp3d, all_indices, num_matches
+    # TO-CHECK-Later: Better way to code the above is to exclusively handle failure cases as below commented code:
+#    if len(mkpts0) > 3:
+#        result, inliers = do_pnp(mkpts0, mkpts_xyz, camera_parm, 0.00, reproj_error=args.reproj_err)
+#        # cfg = {
+#        #     'model': 'PINHOLE', # PINHOLE, Also note: Try OPENCV uses distortion as well
+#        #     'width': width,
+#        #     'height': height,
+#        #     'params': [fx, fy, cx, cy]
+#        # }
 #
-#    xyz_T = xyz.T
-#    xyz_hom0 = np.vstack((xyz_T, np.ones(xyz_T[0].shape)))
-#    K_hom = np.vstack((K, np.zeros(K[0].shape)))
-#    K_hom = np.hstack((K_hom, np.array([[0,0,0,1]]).T))
+#    else:
+#        result = loc_failure
+#        T_w2c = pred_pose
+#        result = LocResult(False, result.num_inliers, result.inlier_ratio, T_w2c)
 #
-#    xyz_hom1 = np.matmul(extrinsics, xyz_hom0)
-#    xy_img = np.matmul(K_hom, xyz_hom1)
-#    xy_img = xy_img[0:2,:] / xy_img[2:3,:] #TXDX: Check if minus - should be there before xy_img[2:3,:].
-#    #xy_img[1] *= -1
+#    if result.success:
+#        T_c2w = result.T
+#        T_w2c = np.linalg.inv(T_c2w)
 #
-##    print(xy_img.shape, "bii", np.nanmax(xy_img, axis=1),  xy_img[:, 0:10])
+#    else:
+#        T_w2c = pred_pose
 #
-#    print(xy_img)
-#    sampler = torch.Tensor(xy_img).view(2, H, W).permute(1,2,0).unsqueeze(0)
-#    print("HI", sampler)
-#    #print(colors_re.shape, xy_img.shape)
-#    # Create generated image
-#    img2_tensor = ToTensor()(colors_re).unsqueeze(0)
-#    img2_warped = F.grid_sample(img2_tensor, sampler)
-#    
-#    #print(img2_tensor[:,:,10], img2_warped[:,:,10])
-#
-#    # Visualise
-#    #plt.figure(figsize=(10,10))
-#    #ax1 = plt.subplot(221)
-#    #ax1.imshow(img2_tensor.squeeze().permute(1,2,0))
-#    #ax1.set_title("View 2", fontsize='large')
-#    #ax1.axis('off')
-#    #ax1 = plt.subplot(222)
-#    #plt.imshow(img2_warped.squeeze().permute(1,2,0))
-#    #ax1.set_title("View 2 warped into View 1 \n according to the estimated transformation", fontsize='large')
-#    #ax1.axis('off')
-#
+#    refine_poses.append(T_w2c)
+#    num_inliers.append(result.num_inliers)
 
 def backprojection_to_3D_features_and_save_rio(save_dir, db_dir, scene_id):
     # local_feat_dir = os.path.join(save_dir, 'local_feats')
@@ -731,7 +729,9 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir, scene_id):
         pred = superpoint({'image': inp0})
         pred = {k: v[0].cpu().numpy() for k, v in pred.items()}
 
-        keypoints = (pred['keypoints'] * scales0).astype(int)
+        # keypoints = (pred['keypoints'] * scales0).astype(int) #original code: replaced with hloc
+        keypoints = ((pred['keypoints'] + .5) * scales0 - .5).astype(int) #What hloc pipeline is doing for rescaling keypoints of feature extraction.
+        # pred['keypoints'] = (pred['keypoints'] + .5) * scales[None] - .5 #What hloc pipeline is doing for rescaling keypoints of feature extraction.
 
         kpts_xyz = xyz[keypoints[:, 1], keypoints[:, 0], :]
         H_kpts = np.concatenate((kpts_xyz.T, np.ones((1, len(kpts_xyz)))), axis=0)

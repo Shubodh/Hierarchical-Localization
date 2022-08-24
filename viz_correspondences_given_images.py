@@ -221,6 +221,9 @@ if __name__ == '__main__':
     matcher_conf = match_features.confs[matcher_name] # superglue
 
 
+    Path("outputs/graphVPR/rio_metric/tiny/feats-superpoint-n4096-r1600.h5").unlink()
+    Path("outputs/graphVPR/rio_metric/tiny/feats-superpoint-n4096-r1600_matches-superglue_bruteforce40_samply_viz_3d_expt_2_scene01.h5").unlink()
+
     # ## Extract local features for database and query images
     feature_path = extract_features.main(feature_conf, dataset, outputs)
     print(feature_path)
