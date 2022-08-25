@@ -14,6 +14,10 @@ import time
 import argparse
 from scipy.spatial.transform import Rotation as R
 
+import logging
+# logging.basicConfig(level=logging.DEBUG)
+# logging.basicConfig(level=logging.WARNING)
+
 # sys.path.append(str(Path(__file__).parent / '..')) #to import hloc
 from hloc import extract_features, match_features, localize_rio, visualization
 

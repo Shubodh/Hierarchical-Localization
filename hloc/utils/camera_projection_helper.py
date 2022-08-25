@@ -13,6 +13,8 @@ from pathlib import Path
 from tqdm import tqdm
 from scipy.spatial.transform import Rotation as R
 
+import logging
+
 sys.path.append(str(Path(__file__).parent / '../../third_party'))
 from SuperGluePretrainedNetwork.models.superpoint import SuperPoint
 from SuperGluePretrainedNetwork.models.superglue import SuperGlue
@@ -579,6 +581,18 @@ def old_code_dump_from_synthesize_img_given_viewpoint():
     #ax1.set_title("View 2 warped into View 1 \n according to the estimated transformation", fontsize='large')
     #ax1.axis('off')
 
+def rescaling_kpts_superpoint(pred0, scales0):
+    """ converting from tensor to numpy, rescaling and then again converting to torch's tensor."""
+    pred = superpoint({'image': inp0})
+    pred = {k: v[0].cpu().numpy() for k, v in pred.items()}
+
+    # keypoints = (pred['keypoints'] * scales0).astype(int) #original code: replaced with hloc
+    keypoints = ((pred['keypoints'] + .5) * scales0 - .5).astype(int) #What hloc pipeline is doing for rescaling keypoints of feature extraction.
+    # pred['keypoints'] = (pred['keypoints'] + .5) * scales[None] - .5 #What hloc pipeline is doing for rescaling keypoints of feature extraction.
+    for k, v in grp.items():
+        data[k+'0'] = torch.from_numpy(v.__array__()).float().to(device)
+    return pred0
+    
 
 def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, scene_id, camera_parm, height, width):#, pcfeat_pth, camera_parm, max_keypoints):
     max_keypoints = 4096 #Before 13aug, you used 3000.  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
@@ -603,7 +617,7 @@ def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, 
                             #'descriptor_dim': 256,
                             #'keypoint_encoder': [32, 64, 128, 256],
                             #'GNN_layers': ['self', 'cross'] * 9,
-                            'sinkhorn_iterations': 50,# TO-CHECK-Later: hloc by default uses 50, but PCLoc uses 20.
+                            'sinkhorn_iterations': 50,# Note: hloc by default uses 50, but PCLoc uses 20.
                             # 'match_threshold': 0.2,
                              }}
     superglue = SuperGlue(config.get('superglue', {})).eval().to(device)
@@ -629,10 +643,16 @@ def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, 
     #     pcfeat_pth = pcfeat_list[topk_idx // 36]
 
     pred_kpts, pred_desc, pred_score, pred_xyz = scan2imgfeat_projection(pred_pose, pcfeat_pth, camera_parm, height, width, num_kpts=max_keypoints)
-    # image0, inp0, scales0 = read_image_sg(cutout_pth[:-4], device, [1200], 0, False)
-    # TO-CHECK-Later: (In case bad results) Look at 3rd param `resize` below. In PCLoc for InLoc, they use 1600.
     query_pth = str(dataset_dir / q)
+
+    resize_dbg_msg = """Look at 3rd param `resize` below. Might need to modify for different feature matchers or datasets.
+                        Using -1 for RIO10 currently (SuperPoint only). For InLoc: 1600 -->
+                        Since confs['superpoint_inloc']['preprocessing']['resize_max'] is 1600 in extract_features.py.
+                        Even in PCLoc for InLoc data, they use 1600."""
+    logging.warning(resize_dbg_msg)
     image0, inp0, scales0 = read_image_sg(query_pth, device, [-1], 0, False)
+
+
     # print(cutout_pth, "\n", image0, "\n", inp0, "\n", scales0)
     sg_config = {'superpoint': {'nms_radius': 4, 
                              'keypoint_threshold': 0.005,
@@ -641,6 +661,15 @@ def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, 
 
     superpoint = SuperPoint(sg_config.get('superpoint', {})).eval().to(device)
     pred0 = superpoint({'image': inp0})
+
+    if scales0 != (1.0,1.0):
+        # then you will have to use below function and write additional code
+        # pred0 = rescaling_kpts_superpoint(pred0, scales0)
+        log_crt_sc = """scale is not 1.0, 1.0; so you will have to write above function `rescaling_kpts()`. (commented)
+        Basically, since input image to SP would be scaled (if scale is not 1), pred0 would also be scaled.
+        But below pred_kpts are not scaled (they are from 3D backprojection() function).
+        """
+        raise ValueError(log_crt_sc)
 
     data = convert_superglue_db_format(inp0, pred0, pred_kpts, pred_desc, pred_score, device)
     mkpts0, mkpts_xyz, mkpts1 = superglue_refinement(data, pred_xyz) #mkpts0 is query keypoints
@@ -715,10 +744,13 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir, scene_id):
     scan_xyz = []
 
     for cutout_pth in tqdm(cutout_list_rgb):
-
-        # image0, inp0, scales0 = read_image_sg(cutout_pth[:-4], device, [1200], 0, False)
-        # TO-CHECK-Later: (In case bad results) Look at 3rd param `resize` below. In PCLoc for InLoc, they use 1600.
+        resize_dbg_msg = """Look at 3rd param `resize` below. Might need to modify for different feature matchers or datasets.
+                            Using -1 for RIO10 currently (SuperPoint only). For InLoc: 1600 -->
+                            Since confs['superpoint_inloc']['preprocessing']['resize_max'] is 1600 in extract_features.py.
+                            Even in PCLoc for InLoc data, they use 1600."""
+        logging.debug(resize_dbg_msg)
         image0, inp0, scales0 = read_image_sg(cutout_pth, device, [-1], 0, False)
+
         # print(cutout_pth, "\n", image0, "\n", inp0, "\n", scales0)
 
         # scan_data = io.loadmat(cutout_pth)
