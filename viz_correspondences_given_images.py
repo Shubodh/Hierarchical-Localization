@@ -191,15 +191,24 @@ if __name__ == '__main__':
 
     # dataset = Path('datasets/InLoc_like_RIO10/scene01_synth/')  # change this if your dataset is somewhere else
     # dataset = Path('datasets/InLoc_like_RIO10/scene'+ given_scene_id + '_viz/')  # change this if your dataset is somewhere else
-    expt_name = "_small_for_3dproj_pkl" #"3d_expt"
-    # dataset = Path('datasets/InLoc_like_RIO10/scene'+ given_scene_id + '_viz' + '_'+ expt_name + '/')  # change this if your dataset is somewhere else
-    dataset = Path('datasets/InLoc_like_RIO10/scene'+ given_scene_id + expt_name +  '/')  # change this if your dataset is somewhere else
+    expt_is = "2"
+    # if_changing_above, you will also have to rename pkl file.  Automate it?
+    # TODO-Tomorrow: Keep code same but change pkl file, gives failure in full.pkl case.
+    if expt_is == "1":
+        expt_name = "3d_expt" #"3d_expt"
+        expt_name_pname = "3d_expt" #"3d_expt"
+        dataset = Path('datasets/InLoc_like_RIO10/scene'+ given_scene_id + '_viz' + '_'+ expt_name + '/')  # change this if your dataset is somewhere else
+    elif expt_is == "2":
+        expt_name = "_small_for_3dproj_pkl" #"3d_expt"
+        expt_name_pname = "3d_expt_2" #"3d_expt"
+        dataset = Path('datasets/InLoc_like_RIO10/scene'+ given_scene_id + expt_name +  '/')  # change this if your dataset is somewhere else
 
-    expt_name_pname = "3d_expt_2" #""
+
     pairs = Path('pairs/graphVPR/rio_metric/') #'pairs/inloc/'
     # loc_pairs = pairs / 'bruteforce40_samply.txt'#_tiny_0 #_cheating  # bruteforce40_samply.txt #_tiny_0 # top 40 retrieved by NetVLAD #-minustop3rooms
     # loc_pairs = pairs / Path('bruteforce40_samply_viz_scene' +given_scene_id+ '.txt')#_tiny_0 #_cheating  # bruteforce40_samply.txt #_tiny_0 # top 40 retrieved by NetVLAD #-minustop3rooms
-    loc_pairs = pairs / Path('bruteforce40_samply_viz_'+ expt_name_pname + '_' +'scene' +given_scene_id+ '.txt')#_tiny_0 #_cheating  # bruteforce40_samply.txt #_tiny_0 # top 40 retrieved by NetVLAD #-minustop3rooms
+    loc_pairs_file_name = 'bruteforce40_samply_viz_'+ expt_name_pname + '_' +'scene' +given_scene_id
+    loc_pairs = pairs / Path(loc_pairs_file_name + '.txt')#_tiny_0 #_cheating  # bruteforce40_samply.txt #_tiny_0 # top 40 retrieved by NetVLAD #-minustop3rooms
 
     outputs = Path('outputs/graphVPR/rio_metric/tiny/')  # where everything will be saved
 
@@ -209,7 +218,7 @@ if __name__ == '__main__':
     feature_name  = 'superpoint_inloc'  # sift, superpoint_inloc, d2net-ss, netvlad
     matcher_name  = 'superglue' # NN-mutual, superglue
     skip_no = 20
-    refine_pcloc =  True
+    refine_pcloc = False 
 
     results = outputs / Path('RIO_hloc_LOCAL_TINY_' + custom_info + '_' + feature_name +'+' + matcher_name + '_skip' + str(skip_no) + '_' + dt_time + '.txt')  # the result file
     print(f"Starting localization on {dt_time}")
@@ -224,9 +233,11 @@ if __name__ == '__main__':
     feature_conf = extract_features.confs[feature_name] # superpoint_inloc, d2net-ss, netvlad
     matcher_conf = match_features.confs[matcher_name] # superglue
 
-
+    print("\n DELETING OLD h5 files: feat extract and feat match \n")
     Path("outputs/graphVPR/rio_metric/tiny/feats-superpoint-n4096-r1600.h5").unlink()
-    Path("outputs/graphVPR/rio_metric/tiny/feats-superpoint-n4096-r1600_matches-superglue_bruteforce40_samply_viz_3d_expt_2_scene01.h5").unlink()
+    base_delete_path = "outputs/graphVPR/rio_metric/tiny/feats-superpoint-n4096-r1600_matches-superglue"
+    match_path_to_delete = base_delete_path + "_" + loc_pairs_file_name + ".h5"
+    Path(match_path_to_delete).unlink()
 
     # ## Extract local features for database and query images
     feature_path = extract_features.main(feature_conf, dataset, outputs)

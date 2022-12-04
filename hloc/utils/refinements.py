@@ -310,6 +310,6 @@ class Refinement_base(torch.nn.Module):
         valid_full = matches_full > -1
         mkpts0_full = kpts0_full[valid_full]
         mkpts1_full = kpts1_full[matches_full[valid_full]]
-        mkpts1_xyz_full = ptcloud[matches_full[valid_full], :]
+        mkpts1_xyz_full = ptcloud[matches_full[valid_full], :] #Remember ptcloud is not the full point cloud, but it just has points corresponding to 2D feature points.
 
         return mkpts0_full, mkpts1_xyz_full, mkpts1_full

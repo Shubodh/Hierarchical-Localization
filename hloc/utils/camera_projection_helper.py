@@ -595,6 +595,11 @@ def rescaling_kpts_superpoint(pred0, scales0):
     
 
 def reestimate_pose_using_3D_features_pcloc(dataset_dir, q, qvec, tvec, on_ada, scene_id, camera_parm, height, width):#, pcfeat_pth, camera_parm, max_keypoints):
+    """
+    Given initially estimated pose, this function uses 3D feat file and projects that into 2D 
+    at the given pose. Now, match these 2D (projected) feats with query and estimate pose using 
+    pnp as usual.
+    """
     max_keypoints = 4096 #Before 13aug, you used 3000.  #SuperPoint's default is -1. In hloc aka superpoint_inloc, we're using 4096. In PCLoc, 3000.
     if on_ada:
         pcfeat_base_pth = "/data/InLoc_dataset/outputs/rio/ICCV_TEST/pc_feats/"
@@ -765,7 +770,10 @@ def backprojection_to_3D_features_and_save_rio(save_dir, db_dir, scene_id):
         keypoints = ((pred['keypoints'] + .5) * scales0 - .5).astype(int) #What hloc pipeline is doing for rescaling keypoints of feature extraction.
         # pred['keypoints'] = (pred['keypoints'] + .5) * scales[None] - .5 #What hloc pipeline is doing for rescaling keypoints of feature extraction.
 
+        # TODO: Instead of directly using xyz[] below, interpolate? See localize_rio.py.
         kpts_xyz = xyz[keypoints[:, 1], keypoints[:, 0], :]
+        print("debug")
+
         H_kpts = np.concatenate((kpts_xyz.T, np.ones((1, len(kpts_xyz)))), axis=0)
         # align_xyz = np.matmul(P_after, H_kpts) #For InLoc, not relevant for RIO10. So the following 2-3 lines serve no purpose. Keeping it anyway for InLoc later.
         align_xyz = H_kpts
