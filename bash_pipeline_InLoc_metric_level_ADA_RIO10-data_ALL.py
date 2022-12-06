@@ -1,11 +1,11 @@
 import os
 
 if __name__ == '__main__':
-    dt = "dt100623"
-    time = "t2201"
-    #room_ids = ["1","3", "5", "7", "9"]
-    room_ids = ["5", "7", "9"]
-    netvlad_no = "80"
+    dt = "dt061222"
+    time = "t2155"
+    room_ids = ["1","3", "5", "7", "9"]
+    #room_ids = ["5", "7", "9"]
+    netvlad_no = "40"
     scene_types =["ROI_with_QOI" , "RRI_with_QRI" , "RRI_with_QOI" , "ROI_with_QRI"] # ["ROI_and_ARRI_with_QRI", "RRI_and_ARRI_with_QRI", "ROI_and_ARRI_with_QOI"]  #more: ROI_with_QOI, RRI_with_QRI,
     scene_types_aug_ref = ["ROI_and_ARRI_with_QRI", "RRI_and_ARRI_with_QRI","ROI_and_ARRI_with_QOI", "RRI_and_ARRI_with_QOI"]
     scene_types_aug_query = ["ROI_with_QOI_and_AQRI", "ROI_and_ARRI_with_QOI_and_AQRI", "RRI_with_QRI_and_AQRI", "RRI_and_ARRI_with_QRI_and_AQRI"]
@@ -16,7 +16,7 @@ if __name__ == '__main__':
     #scene_types_temp = [scene_types_aug_query[0]]
     #scene_types_temp = [scene_types_aug_query[1]]
     #scene_types_temp = [scene_types[0], scene_types_aug_ref[2]]
-    scene_types_temp = [scene_types_aug_ref[2]]
+    scene_types_temp = [scene_types[0]]
     for scene_type in scene_types_temp:
         print("\n")
         print("\n")

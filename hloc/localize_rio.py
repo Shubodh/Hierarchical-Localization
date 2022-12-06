@@ -410,8 +410,8 @@ def main(dataset_dir, retrieval, features, matches, results, scene_id, refine_pc
         #     dataset_dir, q, db, feature_file, match_file, skip_matches)
 
 
-        on_ada = False
-        print("Check on_ada")
+        on_ada = True #False
+        # print("Check on_ada")
         if refine_pcloc:
             print("PCLOC starting")
             fx, fy, cx, cy, height, width = cam_intrinsics_from_query_img(Path(dataset_dir), Path(q))
