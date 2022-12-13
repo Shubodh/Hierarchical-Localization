@@ -5,7 +5,7 @@ Getting metric results is 3 step process:
 1.  First, you need to generate global descriptor NetVLAD.h5 files. See `pipeline_InLoc_metric_level_ADA_RIO10-data_NETVLAD.py` and bash version of that for generating the h5 file.
 2. Now, using this h5 file, we want to generate the top40 matches txt file which is used by SP+SG in next step. See `bash_pairs_from_retrieval_custom.py` to see how to generate that txt file.
 3. Now using this txt file, we can finally run our standard pipeline script `pipeline_InLoc_metric_level_ADA_RIO10-data.py`. This runs SP+SG+P3P for metric results. That's all to obtain metric results!
-You can use utility scripts in hloc/utils like io.py for example, for converting generated pose.txt into RIO10 pose format. io.py also does misc things like writing individual GT pose files into single file.
+You can use utility scripts in hloc/utils like io.py for example, for converting generated pose.txt into RIO10 pose format. io.py also does misc things like writing individual GT pose files into single file. You can take a look at files starting with `bash_...py` to see such misc things/direct commands with arguments etc. 
 
 OLD documentation:
 The scripts in the folder `graphVPR/` extract the necessary information for our graphVPR related tasks. Find more information in the README file in that folder itself.

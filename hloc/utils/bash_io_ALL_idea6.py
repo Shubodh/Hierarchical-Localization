@@ -3,10 +3,10 @@ import os
 
 if __name__ == '__main__':
     #dttime = "dt030622-t1910"
-    dt = "dt061222"
+    dt = "dt081222"
     #dt = "dt100623"
     #time = "t2201"
-    time = "t2155"
+    time = "t0239"
     dttime = dt + "-" + time# "dt050622-t1111"
     room_ids = ["1", "3", "5", "7", "9"]
     #room_ids = ["1"]
@@ -19,7 +19,8 @@ if __name__ == '__main__':
     skip_no = "3" # "40" for d2net, 3 for SP
     sp_or_d2net = "superpoint_inloc+superglue" #"d2net-ss+NN-mutual"
 
-    scene_types_temp = [scene_types[0]]#, scene_types_aug_ref[2]]
+    # scene_types_temp = [scene_types[0]]#, scene_types_aug_ref[2]]
+    scene_types_temp = ["AQRI_with_QOI"]#, scene_types_aug_ref[2]]
     # scene_types_temp = [scene_types_aug_ref[2],scene_types_aug_ref[3], scene_types_aug_query[0],scene_types_aug_query[1],scene_types_aug_query[2], scene_types_aug_query[3]]
     for scene_type in scene_types_temp:
         print("\n")
@@ -30,5 +31,5 @@ if __name__ == '__main__':
             print("\n")
             print(room_id)
             output_end ='scene0' + room_id + "_" + scene_type #'scene' + given_scene_id + '_and_places/' #'scene01_and_places' #'scene01_just/'
-            print("python3 io.py --pose_path /data/InLoc_dataset/outputs/rio/"+ output_end + "/" + scene_type + "_" + "scene0" + room_id  +"_sampling10_netvlad" +netvlad_num  +"_RIO_hloc_" + sp_or_d2net + "_skip"+ skip_no + "_" + dttime +".txt" + " --scene_id 0" + room_id)
-            os.system("python3 io.py --pose_path /data/InLoc_dataset/outputs/rio/"+ output_end + "/" + scene_type + "_" + "scene0" + room_id  +"_sampling10_netvlad" +netvlad_num  +"_RIO_hloc_" + sp_or_d2net + "_skip"+ skip_no + "_" + dttime +".txt" + " --scene_id 0" + room_id)
+            print("python3 io.py --pose_path /data/InLoc_dataset/outputs/rio_idea6_AQRI_with_QOI/"+ output_end + "/" + scene_type + "_" + "scene0" + room_id  +"_sampling10_netvlad" +netvlad_num  +"_RIO_hloc_" + sp_or_d2net + "_skip"+ skip_no + "_" + dttime +".txt" + " --scene_id 0" + room_id)
+            os.system("python3 io.py --pose_path /data/InLoc_dataset/outputs/rio_idea6_AQRI_with_QOI/"+ output_end + "/" + scene_type + "_" + "scene0" + room_id  +"_sampling10_netvlad" +netvlad_num  +"_RIO_hloc_" + sp_or_d2net + "_skip"+ skip_no + "_" + dttime +".txt" + " --scene_id 0" + room_id)

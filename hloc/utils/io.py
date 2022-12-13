@@ -262,10 +262,12 @@ if __name__ == "__main__":
     # 1. above
     pose_path = args.pose_path
     scene_id = args.scene_id
-    #convert_pose_file_format_wtoc_to_ctow_RIO_format(pose_path, scene_id)
+    if args.scene_id and args.pose_path:
+        convert_pose_file_format_wtoc_to_ctow_RIO_format(pose_path, scene_id)
 
     # 2. above
     folder_path = args.folder_path
     output_file_path = args.output_file_path
-    write_individual_pose_files_to_single_output(folder_path, output_file_path, scene_id)
+    if args.folder_path and args.output_file_path and args.scene_id:
+        write_individual_pose_files_to_single_output(folder_path, output_file_path, scene_id)
 
