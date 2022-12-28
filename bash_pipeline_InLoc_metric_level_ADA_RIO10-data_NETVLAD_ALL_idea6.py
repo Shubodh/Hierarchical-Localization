@@ -10,7 +10,7 @@ if __name__ == '__main__':
     scene_types_aug_all = scene_types_aug_ref + scene_types_aug_query
 
     # current_scene_types = [scene_types[0]]
-    current_scene_types = ["AQRI_with_QOI"]
+    current_scene_types =["QRI_with_QOI"]# ["AQRI_with_QOI"]
     #current_scene_types = scene_types_aug_all
     #for scene_type in scene_types:
     for scene_type in current_scene_types:

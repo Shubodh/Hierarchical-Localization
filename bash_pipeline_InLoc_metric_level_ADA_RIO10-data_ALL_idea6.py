@@ -1,8 +1,8 @@
 import os
 
 if __name__ == '__main__':
-    dt = "dt081222"
-    time = "t0239"
+    dt ="dt141222" # "dt081222"
+    time = "t1210"
     room_ids = ["1","3", "5", "7", "9"]
     #room_ids = ["5", "7", "9"]
     netvlad_no = "40"
@@ -17,7 +17,7 @@ if __name__ == '__main__':
     #scene_types_temp = [scene_types_aug_query[1]]
     #scene_types_temp = [scene_types[0], scene_types_aug_ref[2]]
     # scene_types_temp = [scene_types[0]]
-    scene_types_temp = ["AQRI_with_QOI"]
+    scene_types_temp = ["QRI_with_QOI"]# ["AQRI_with_QOI"]
     for scene_type in scene_types_temp:
         print("\n")
         print("\n")

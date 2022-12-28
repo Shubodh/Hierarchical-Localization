@@ -3,10 +3,10 @@ import os
 
 if __name__ == '__main__':
     #dttime = "dt030622-t1910"
-    dt = "dt081222"
+    dt = "dt141222"#"dt081222"
     #dt = "dt100623"
     #time = "t2201"
-    time = "t0239"
+    time ="t1210" #"t0239"
     dttime = dt + "-" + time# "dt050622-t1111"
     room_ids = ["1", "3", "5", "7", "9"]
     #room_ids = ["1"]
@@ -20,7 +20,7 @@ if __name__ == '__main__':
     sp_or_d2net = "superpoint_inloc+superglue" #"d2net-ss+NN-mutual"
 
     # scene_types_temp = [scene_types[0]]#, scene_types_aug_ref[2]]
-    scene_types_temp = ["AQRI_with_QOI"]#, scene_types_aug_ref[2]]
+    scene_types_temp =["QRI_with_QOI"]# ["AQRI_with_QOI"]#, scene_types_aug_ref[2]]
     # scene_types_temp = [scene_types_aug_ref[2],scene_types_aug_ref[3], scene_types_aug_query[0],scene_types_aug_query[1],scene_types_aug_query[2], scene_types_aug_query[3]]
     for scene_type in scene_types_temp:
         print("\n")

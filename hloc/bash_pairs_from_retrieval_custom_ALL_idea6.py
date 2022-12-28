@@ -1,7 +1,7 @@
 import os
 
 if __name__ == '__main__':
-    dt ="dt081222" # "dt100623"
+    dt ="dt141222" #"dt081222" # "dt100623"
     room_ids = ["1","3", "5", "7", "9"]
     #room_ids = ["1"]
     scene_types =["ROI_with_QOI" , "RRI_with_QRI" , "RRI_with_QOI" , "ROI_with_QRI"] # ["ROI_and_ARRI_with_QRI", "RRI_and_ARRI_with_QRI", "ROI_and_ARRI_with_QOI"]  #more: ROI_with_QOI, RRI_with_QRI,
@@ -13,7 +13,7 @@ if __name__ == '__main__':
     #current_scene_types = [scene_types_aug_ref[0]]
     #current_scene_types = scene_types_aug_all
     # current_scene_types = [scene_types[0]]#, scene_types_aug_ref[2]]
-    current_scene_types = ["AQRI_with_QOI"]
+    current_scene_types =["QRI_with_QOI"]# ["AQRI_with_QOI"]
     for scene_type in current_scene_types:
         print("\n")
         print("\n")
