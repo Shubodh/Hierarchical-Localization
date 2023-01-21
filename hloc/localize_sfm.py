@@ -13,6 +13,7 @@ from .utils.parsers import parse_image_lists, parse_retrieval, names_to_pair
 
 
 def do_covisibility_clustering(frame_ids, all_images, points3D):
+    print("debugging do_covisibility_clustering")
     clusters = []
     visited = set()
 

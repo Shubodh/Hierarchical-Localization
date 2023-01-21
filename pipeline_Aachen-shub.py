@@ -59,6 +59,7 @@ matcher_conf = match_features.confs['superglue']
 # In[5]:
 
 
+print("1. extract_features.main")
 feature_path = extract_features.main(feature_conf, images, outputs)
 
 
@@ -72,6 +73,7 @@ feature_path = extract_features.main(feature_conf, images, outputs)
 # In[6]:
 
 
+print("2. colmap_from_nvm.main")
 colmap_from_nvm.main(
     dataset / '3D-models/aachen_cvpr2018_db.nvm',
     dataset / '3D-models/database_intrinsics.txt',
@@ -82,6 +84,7 @@ colmap_from_nvm.main(
 # In[7]:
 
 
+print("3. pairs_from_covisibility.main")
 pairs_from_covisibility.main(
     outputs / 'sfm_sift', sfm_pairs, num_matched=20)
 
@@ -91,6 +94,7 @@ pairs_from_covisibility.main(
 # In[8]:
 
 
+print("4. match_features.main")
 sfm_match_path = match_features.main(matcher_conf, sfm_pairs, feature_conf['output'], outputs)
 
 
@@ -102,6 +106,7 @@ sfm_match_path = match_features.main(matcher_conf, sfm_pairs, feature_conf['outp
 # In[9]:
 
 
+print("5. triangulation.main")
 triangulation.main(
     reference_sfm,
     outputs / 'sfm_sift',
@@ -118,6 +123,7 @@ triangulation.main(
 # In[10]:
 
 
+print("6. match_features.main")
 loc_match_path = match_features.main(matcher_conf, loc_pairs, feature_conf['output'], outputs)
 
 
@@ -127,6 +133,7 @@ loc_match_path = match_features.main(matcher_conf, loc_pairs, feature_conf['outp
 # In[11]:
 
 
+print("6. localize_sfm.main")
 localize_sfm.main(
     reference_sfm,
     dataset / 'queries/*_time_queries_with_intrinsics.txt',
@@ -134,7 +141,7 @@ localize_sfm.main(
     feature_path,
     loc_match_path,
     results,
-    covisibility_clustering=False)  # not required with SuperPoint+SuperGlue
+    covisibility_clustering=True)  # not required with SuperPoint+SuperGlue
 
 
 # ## Visualizing the SfM model
@@ -145,43 +152,43 @@ localize_sfm.main(
 # In[12]:
 
 
-visualization.visualize_sfm_2d(reference_sfm, images, n=1, color_by='track_length')
-
-
-# Color the keypoints by visibility: blue if sucessfully triangulated, red if never matched.
-
-# In[13]:
-
-
-visualization.visualize_sfm_2d(reference_sfm, images, n=1, color_by='visibility')
-
-
-# Color the keypoints by triangulated depth: red keypoints are far away, blue keypoints are closer.
-
-# In[14]:
-
-
-visualization.visualize_sfm_2d(reference_sfm, images, n=1, color_by='depth')
-
-
-# ## Visualizing the localization
-# We parse the localization logs and for each query image plot matches and inliers with a few database images.
-
-# In[15]:
-
-
-visualization.visualize_loc(
-    results, images, reference_sfm, n=1, top_k_db=1, prefix='query/night', seed=2)
-
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
+#visualization.visualize_sfm_2d(reference_sfm, images, n=1, color_by='track_length')
+#
+#
+## Color the keypoints by visibility: blue if sucessfully triangulated, red if never matched.
+#
+## In[13]:
+#
+#
+#visualization.visualize_sfm_2d(reference_sfm, images, n=1, color_by='visibility')
+#
+#
+## Color the keypoints by triangulated depth: red keypoints are far away, blue keypoints are closer.
+#
+## In[14]:
+#
+#
+#visualization.visualize_sfm_2d(reference_sfm, images, n=1, color_by='depth')
+#
+#
+## ## Visualizing the localization
+## We parse the localization logs and for each query image plot matches and inliers with a few database images.
+#
+## In[15]:
+#
+#
+#visualization.visualize_loc(
+#    results, images, reference_sfm, n=1, top_k_db=1, prefix='query/night', seed=2)
+#
+#
+## In[ ]:
+#
+#
+#
+#
+#
+## In[ ]:
+#
+#
+#
+#
